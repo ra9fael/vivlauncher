@@ -10,3 +10,9 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# .NET / WPF
+bin/
+obj/
+artifacts/
+TestResults/

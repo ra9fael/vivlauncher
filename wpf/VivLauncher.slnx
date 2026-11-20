@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="VivLauncher.Core/VivLauncher.Core.csproj" />
+  <Project Path="VivLauncher.App/VivLauncher.App.csproj" />
+  <Project Path="VivLauncher.Tests/VivLauncher.Tests.csproj" />
+</Solution>
