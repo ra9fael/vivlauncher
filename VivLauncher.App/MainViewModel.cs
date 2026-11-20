@@ -31,7 +31,6 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool noLog = true;
     [ObservableProperty] private bool noJournal = true;
     [ObservableProperty] private string extraArgs = "";
-    [ObservableProperty] private int languageIndex;
     [ObservableProperty] private int themeIndex;
     [ObservableProperty] private string notice = "";
     public event Action? CloseRequested;
@@ -42,9 +41,8 @@ public partial class MainViewModel : ObservableObject
         Store = store;
         Launcher = launcher;
         this.isolated = isolated;
-        languageIndex = Store.Read("wpf", "language", "zh-CN") == "en" ? 1 : 0;
+        Text.SetLanguage(Store.Read("wpf", "language", Localizer.SystemLanguage));
         themeIndex = Store.Read("wpf", "theme", "system") switch { "light" => 1, "dark" => 2, _ => 0 };
-        Text.English = LanguageIndex == 1;
         var options = Store.Options();
         noLog = options.NoLog;
         noJournal = options.NoJournal;
@@ -59,8 +57,8 @@ public partial class MainViewModel : ObservableObject
     public bool CanUndoRemoval => lastRemovedPath is not null;
     public string EmptyTitle => Text[Query.Length == 0 ? "Empty" : "NoResults"];
     public string EmptyHint => Text[Query.Length == 0 ? "EmptyHint" : "NoResultsHint"];
-    public string ProjectCount => $"{Projects.Count} {Text[Query.Length == 0 ? "Count" : "Matches"]}";
-    public string InstallCount => $"{Installs.Count(item => item.Available)} {Text["InstallCount"]}";
+    public string ProjectCount => Text.Format(Query.Length == 0 ? "Count" : "Matches", Projects.Count);
+    public string InstallCount => Text.Format("InstallCount", Installs.Count(item => item.Available));
     public string LastUsed => SelectedProject?.LastVersion.Length > 0 ? $"{Text["LastUsed"]} {SelectedProject.LastVersion}" : Text["NeverUsed"];
     public string BindLabel => Text[SelectedProject?.Binding.Exists == true ? "Unbind" : "Bind"];
     public bool SelectionWarning => SelectedProject?.Binding.Exists == true
@@ -258,7 +256,7 @@ public partial class MainViewModel : ObservableObject
         {
             var bound = Store.ReadSectionValues("project_installs").Count(path => Paths.Same(path, item.Path));
             var recent = Store.Recent().Count(project => project.Version == item.Version);
-            if (!confirm(Text["RemoveTitle"], string.Format(Text["RemoveBody"], item.Version, item.Path, bound, recent))) return;
+            if (!confirm(Text["RemoveTitle"], Text.Format("RemoveBody", item.Version, item.Path, bound, recent))) return;
             Store.RemoveInstall(item.Model, defaultPath);
             lastRemovedPath = item.Path;
             await ScanAsync();
@@ -306,12 +304,17 @@ public partial class MainViewModel : ObservableObject
         catch (Exception error) { Notice = Text["LaunchFailed"] + "\n" + error.Message; }
         finally { Launching = false; Refresh(); }
     }
-    partial void OnLanguageIndexChanged(int value)
+    public string Language
     {
-        Text.English = value == 1;
-        SavePreference("language", value == 1 ? "en" : "zh-CN");
-        RefreshInstallRows(true);
-        RefreshProjects();
+        get => Text.Language;
+        set
+        {
+            if (!Text.SetLanguage(value)) return;
+            OnPropertyChanged();
+            SavePreference("language", Text.Language);
+            RefreshInstallRows(true);
+            RefreshProjects();
+        }
     }
     partial void OnThemeIndexChanged(int value)
     {

@@ -11,7 +11,16 @@
             <DockPanel Margin="0,0,0,20">
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <Button Style="{StaticResource Action}" Click="ManageClick" Content="{Binding Text[Manage]}" AutomationProperties.AutomationId="Manage" Margin="0,0,8,0" />
-                    <Button Style="{StaticResource Action}" Click="SettingsClick" Content="{Binding Text[Settings]}" AutomationProperties.AutomationId="Settings" />
+                    <Button Style="{StaticResource Action}" Click="SettingsClick" Content="{Binding Text[Settings]}" AutomationProperties.AutomationId="Settings" Margin="0,0,8,0" />
+                    <Grid MinWidth="144">
+                        <ComboBox ItemsSource="{Binding Text.Options}" DisplayMemberPath="Name" SelectedValuePath="Code"
+                                  SelectedValue="{Binding Language}" MinHeight="36" Padding="32,4,24,4"
+                                  ItemContainerStyle="{StaticResource LanguageOption}" AutomationProperties.AutomationId="ToolbarLanguage"
+                                  AutomationProperties.Name="{Binding Text[Language]}" ToolTip="{Binding SelectedItem.Description, RelativeSource={RelativeSource Self}}" />
+                        <Path Width="17" Height="17" Stretch="Uniform" Data="M12,2 A10,10 0 1 1 11.999,2 Z M12,2 A4.5,10 0 1 1 11.999,2 Z M2,12 H22"
+                              Stroke="{DynamicResource Ink}" StrokeThickness="1.4" VerticalAlignment="Center" HorizontalAlignment="Left"
+                              Margin="9,0,0,0" IsHitTestVisible="False" />
+                    </Grid>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal">
                     <Image Source="{StaticResource BrandIcon}" Width="36" Height="36" Margin="0,0,12,0" />
@@ -30,7 +39,6 @@
                 </Grid>
                 <Button Grid.Column="1" Content="{Binding Text[Browse]}" Click="BrowseClick" Style="{StaticResource Action}" Margin="10,0,0,0" MinWidth="90" AutomationProperties.AutomationId="Browse" />
             </Grid>
-            <TextBlock Text="{Binding Text[SearchHint]}" Style="{StaticResource Muted}" Margin="0,7,0,0" TextWrapping="Wrap" />
         </StackPanel>
         <Grid Grid.Row="1" IsEnabled="{Binding Launching, Converter={x:Static local:BoolInverter.Instance}}">
             <Grid.ColumnDefinitions><ColumnDefinition Width="53*" MinWidth="280" /><ColumnDefinition Width="47*" MinWidth="300" /></Grid.ColumnDefinitions>

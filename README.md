@@ -40,11 +40,11 @@ The short forms `-l`, `-a`, `-h` and `list`, `add`, `help` are also supported. C
 
 ## Releases
 
-Push a new Git tag on the release commit to trigger the workflow. For version `v2.0.0`, run these commands from that commit.
+Push a new Git tag on the release commit to trigger the workflow. For version `v2.1.0`, run these commands from that commit.
 
 ```powershell
-git tag -a v2.0.0 -m "Vivado Launcher v2.0.0"
-git push origin refs/tags/v2.0.0
+git tag -a v2.1.0 -m "Vivado Launcher v2.1.0"
+git push origin refs/tags/v2.1.0
 ```
 
 GitHub Actions tests and publishes both targets on Windows. Once the tests and CLI smoke checks pass, both EXEs and their matching `.exe.sha256` files are available on the [GitHub Releases page](https://github.com/ra9fael/vivlauncher/releases).
@@ -56,7 +56,7 @@ GitHub Actions tests and publishes both targets on Windows. Once the tests and C
 - Project bindings use installation **paths**, so two installations with the same version remain distinct. Missing bindings block launch until a replacement is chosen. A changed version requires confirmation and does not overwrite the binding automatically.
 - Unavailable paths, bindings and last-used versions share the same warning treatment. Simultaneous warnings stack in the same column and details panel.
 - In **Installations**, **Remove record** hides an unavailable installation and preserves the associated projects, bindings and history. Use **Undo last removal** in the current session, or reconnect the original path and scan again to recover it.
-- Settings changes language and light/dark/system appearance instantly. File associations change only after pressing **Associate .xpr** and confirming.
+- Use the language dropdown at the top right or open Settings to change the display language. New profiles follow the Windows display language. The app remembers a manual choice and applies it immediately. Settings also controls light, dark, and system appearance. File associations change only after pressing **Associate .xpr** and confirming.
 
 ## Compatibility and files
 
@@ -65,6 +65,10 @@ The app reads and writes `%APPDATA%\vivlauncher\settings.ini`, keeping unrelated
 Logs are stored at `%LOCALAPPDATA%\vivlauncher\vivlauncher.log`. The preferred Vivado process is `bin\unwrapped\win64.o\vvgl.exe`, with the batch entry point and arguments passed separately. If it is missing, the app invokes the batch entry point through Windows `cmd.exe`, with delayed expansion disabled and values passed through environment variables to preserve spaces, Unicode and shell metacharacters. Embedded literal quotes within individual arguments require the wrapper; the fallback reports that limitation instead of reinterpreting them as commands. A successful launch means Windows created the process, not that Vivado finished loading or accepted the project.
 
 Both editions read and write the same profile. The `[removed_installs]` section keeps removed installation records hidden on subsequent scans until the same path becomes available or the user undoes the removal. The saved default is cleared when its installation is removed.
+
+## Localization
+
+The launcher UI supports Simplified Chinese and English. Edit translations in `VivLauncher.App/Localization/`, using `en.xml` as the reference for message keys and format placeholders such as `{0}`. To add a language, add an XML catalog named for its culture code and register the code and native display name in `Localizer.Languages`. Both editions embed the catalogs in their EXEs. Unsupported system languages and missing translations fall back to English.
 
 ## Verification and isolation
 

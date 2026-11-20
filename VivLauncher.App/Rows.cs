@@ -29,8 +29,8 @@ public sealed class ProjectRow(RecentProject project, ProjectBinding binding, bo
         VersionText = Binding.Exists ? bound?.Version ?? (Binding.LegacyVersion.Length > 0 ? Binding.LegacyVersion : Paths.VersionLabel(Binding.InstallPath)) : LastVersion;
         var issues = new List<ProjectIssue>();
         if (!Available) issues.Add(new(text["UnavailableProject"], text["ProjectMissing"]));
-        if (bindingMissing) issues.Add(new(text["UnavailableBinding"], string.Format(text["BindingIssue"], VersionText)));
-        if (historyMissing) issues.Add(new(text["UnavailableHistory"], string.Format(text["HistoryIssue"], LastVersion)));
+        if (bindingMissing) issues.Add(new(text["UnavailableBinding"], text.Format("BindingIssue", VersionText)));
+        if (historyMissing) issues.Add(new(text["UnavailableHistory"], text.Format("HistoryIssue", LastVersion)));
         Issues = issues;
         Warning = issues.Count > 0;
         StatusText = (Binding.Exists ? text["BoundVersion"] : text["LastUsed"]) + " " + VersionText;

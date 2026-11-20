@@ -4,7 +4,11 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
             <TextBlock Text="{Binding Text[Settings]}" FontSize="22" FontWeight="SemiBold" Margin="0,0,0,24" />
             <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                <StackPanel Margin="0,0,12,0"><TextBlock Text="{Binding Text[Language]}" Style="{StaticResource Label}" /><ComboBox SelectedIndex="{Binding LanguageIndex}" MinHeight="38" AutomationProperties.AutomationId="Language"><ComboBoxItem Content="简体中文" /><ComboBoxItem Content="English" /></ComboBox></StackPanel>
+                <StackPanel Margin="0,0,12,0">
+                    <TextBlock Text="{Binding Text[Language]}" Style="{StaticResource Label}" />
+                    <ComboBox ItemsSource="{Binding Text.Options}" DisplayMemberPath="Name" SelectedValuePath="Code" SelectedValue="{Binding Language}" MinHeight="38"
+                              ItemContainerStyle="{StaticResource LanguageOption}" AutomationProperties.AutomationId="Language" AutomationProperties.Name="{Binding Text[Language]}" />
+                </StackPanel>
                 <StackPanel Grid.Column="1"><TextBlock Text="{Binding Text[Appearance]}" Style="{StaticResource Label}" /><ComboBox SelectedIndex="{Binding ThemeIndex}" MinHeight="38" AutomationProperties.AutomationId="Theme"><ComboBoxItem Content="{Binding Text[System]}" /><ComboBoxItem Content="{Binding Text[Light]}" /><ComboBoxItem Content="{Binding Text[Dark]}" /></ComboBox></StackPanel>
             </Grid>
             <TextBlock Text="{Binding Text[PreferencesHint]}" Style="{StaticResource Muted}" Margin="0,12,0,24" />

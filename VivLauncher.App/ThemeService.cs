@@ -1,5 +1,7 @@
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Media;
 using Microsoft.Win32;
 
@@ -37,6 +39,11 @@ public static class ThemeService
         resources["Primary"] = primary;
         resources["LinkButton"] = link;
         resources["InstallOption"] = new Style(typeof(ComboBoxItem), Application.Current.TryFindResource(typeof(ComboBoxItem)) as Style);
+        var languageOption = new Style(typeof(ComboBoxItem), (Style)resources["InstallOption"]);
+        languageOption.Setters.Add(new Setter(AutomationProperties.NameProperty, new Binding(nameof(LanguageOption.Name))));
+        languageOption.Setters.Add(new Setter(AutomationProperties.AutomationIdProperty, new Binding(nameof(LanguageOption.Code))));
+        languageOption.Setters.Add(new Setter(AutomationProperties.HelpTextProperty, new Binding(nameof(LanguageOption.Description))));
+        resources["LanguageOption"] = languageOption;
         SystemEvents.UserPreferenceChanged += (_, _) => Application.Current.Dispatcher.InvokeAsync(() => Apply(selected));
     }
     public static void Apply(int theme)

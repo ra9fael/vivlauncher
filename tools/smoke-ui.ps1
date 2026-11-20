@@ -86,8 +86,10 @@ try {
     $root = $null
     for ($attempt=0; $attempt -lt 80; $attempt++) {
         if ($process.HasExited) { throw "Application exited with $($process.ExitCode)" }
-        $root = [Windows.Automation.AutomationElement]::RootElement.FindFirst([Windows.Automation.TreeScope]::Children, [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ProcessIdProperty, $process.Id))
-        if ($root -and (Find-Id $root 'Search')) { break }
+        $root = [Windows.Automation.AutomationElement]::RootElement.FindFirst([Windows.Automation.TreeScope]::Children, [Windows.Automation.AndCondition]::new(
+            [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ProcessIdProperty, $process.Id),
+            [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::NameProperty, 'Vivado Launcher')))
+        if ($root) { break }
         Start-Sleep -Milliseconds 100
     }
     Assert-True ($null -ne $root) 'Native WPF window opens'
@@ -95,6 +97,26 @@ try {
     Start-Sleep -Milliseconds 1000
     $search = Find-Id $root 'Search'
     $launch = Find-Id $root 'Launch'
+    $toolbarLanguage = Find-Id $root 'ToolbarLanguage'
+    $usesChinese = [Globalization.CultureInfo]::CurrentUICulture.Name -match '^(zh-CN|zh-SG|zh-Hans(?:-.+)?)$'
+    $expectedLanguage = if ($usesChinese) { '语言' } else { 'Language' }
+    Assert-True ($null -ne $toolbarLanguage -and $toolbarLanguage.Current.ControlType -eq [Windows.Automation.ControlType]::ComboBox) 'Toolbar language selector exposes a combo box to assistive technology'
+    Assert-True ($toolbarLanguage.Current.Name -eq $expectedLanguage) "New profile uses Windows display language or English fallback (expected $expectedLanguage, got $($toolbarLanguage.Current.Name))"
+    $toolbarDropdown = $toolbarLanguage.GetCurrentPattern([Windows.Automation.ExpandCollapsePattern]::Pattern)
+    [WindowCapture]::SetForegroundWindow([IntPtr]$root.Current.NativeWindowHandle) | Out-Null
+    $toolbarLanguage.SetFocus()
+    [Windows.Forms.SendKeys]::SendWait('%{DOWN}')
+    Start-Sleep -Milliseconds 260
+    $systemChoice = Find-Id $toolbarLanguage 'system'
+    Assert-True ($null -ne $systemChoice -and $systemChoice.Current.HelpText.Length -gt 0) 'Keyboard opens the language dropdown with system language help'
+    [Windows.Forms.SendKeys]::SendWait('{ESC}')
+    Start-Sleep -Milliseconds 200
+    Assert-True ($toolbarDropdown.Current.ExpandCollapseState -eq [Windows.Automation.ExpandCollapseState]::Collapsed) 'Esc closes the language dropdown'
+    $toolbarDropdown.Expand()
+    (Find-Id $toolbarLanguage 'zh-CN').GetCurrentPattern([Windows.Automation.SelectionItemPattern]::Pattern).Select()
+    $toolbarDropdown.Collapse()
+    Start-Sleep -Milliseconds 180
+    Assert-True ($toolbarLanguage.Current.Name -eq '语言') 'Toolbar language dropdown switches to Chinese immediately'
     $initialList = Find-Id $root 'Projects'
     $initialItem = $initialList.FindFirst([Windows.Automation.TreeScope]::Children, [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty, [Windows.Automation.ControlType]::ListItem))
     $initialItem.GetCurrentPattern([Windows.Automation.SelectionItemPattern]::Pattern).Select()
@@ -168,12 +190,23 @@ try {
     Invoke-Button (Find-Id $manage 'UndoRemoval')
     Assert-True ($null -ne (Find-Id $manage 'RemoveInstall')) 'Undo restores the unavailable record'
     $manage.GetCurrentPattern([Windows.Automation.WindowPattern]::Pattern).Close()
+    $toolbarDropdown.Expand()
+    (Find-Id $toolbarLanguage 'en').GetCurrentPattern([Windows.Automation.SelectionItemPattern]::Pattern).Select()
+    $toolbarDropdown.Collapse()
+    Start-Sleep -Milliseconds 180
+    Assert-True ($toolbarLanguage.Current.Name -eq 'Language') 'Toolbar language dropdown switches to English immediately'
     Invoke-Button (Find-Id $root 'Settings')
-    $settingsWindow = $root.FindFirst([Windows.Automation.TreeScope]::Descendants, [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty, [Windows.Automation.ControlType]::Window))
-    if (-not $settingsWindow) { $settingsWindow = [Windows.Automation.AutomationElement]::RootElement.FindFirst([Windows.Automation.TreeScope]::Children, [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::NameProperty, '设置')) }
+    $settingsWindow = Find-Window 'Settings'
     $language = Find-Id $settingsWindow 'Language'
     $language.GetCurrentPattern([Windows.Automation.ExpandCollapsePattern]::Pattern).Expand()
-    $english = $language.FindFirst([Windows.Automation.TreeScope]::Descendants, [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::NameProperty, 'English'))
+    $english = Find-Id $language 'en'
+    Assert-True ($english.GetCurrentPattern([Windows.Automation.SelectionItemPattern]::Pattern).Current.IsSelected) 'Settings reflects the toolbar language selection'
+    $chinese = Find-Id $language 'zh-CN'
+    $chinese.GetCurrentPattern([Windows.Automation.SelectionItemPattern]::Pattern).Select()
+    Start-Sleep -Milliseconds 300
+    Assert-True ($settingsWindow.Current.Name -eq '设置') 'Settings language selector switches immediately'
+    $language.GetCurrentPattern([Windows.Automation.ExpandCollapsePattern]::Pattern).Expand()
+    $english = Find-Id $language 'en'
     $english.GetCurrentPattern([Windows.Automation.SelectionItemPattern]::Pattern).Select()
     Start-Sleep -Milliseconds 300
     Assert-True ($settingsWindow.Current.Name -eq 'Settings') 'Language switches immediately'

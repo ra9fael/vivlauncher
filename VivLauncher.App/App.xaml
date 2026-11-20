@@ -12,6 +12,7 @@
         <local:InverseVisibilityConverter x:Key="InverseVisibility" />
         <local:ListWidthConverter x:Key="ListWidth" />
         <Style x:Key="AppWindow" TargetType="Window">
+            <Setter Property="Language" Value="{Binding Text.DisplayLanguage, ConverterCulture=en-US}" />
             <Setter Property="FontFamily" Value="Segoe UI Variable Text, Microsoft YaHei UI, Segoe UI" />
             <Setter Property="FontSize" Value="14" />
             <Setter Property="Background" Value="{DynamicResource Surface}" />
