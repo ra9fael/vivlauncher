@@ -42,7 +42,18 @@ const translations = {
     rankedCount: "{count} 个匹配 · 按相关度", unavailableVersion: "版本失效", unavailableBinding: "绑定失效", unavailableHistory: "上次版本失效",
     unavailableInstall: "安装失效", unavailableInstallHint: "原安装路径不可用，已保留记录；请选择其他可用安装。",
     unavailableVersionOption: "失效 · 不可选择", availableCount: "{count} 个可用安装", bindingLabel: "绑定版本 {version}", historyUnavailableDescription: "上次使用的版本 {version} 已不可用",
-    bindingUnavailableDescription: "绑定版本 {version} 已失效", projectUnavailableShort: "工程路径失效"
+    bindingUnavailableDescription: "绑定版本 {version} 已失效", projectUnavailableShort: "工程路径失效",
+    removeRecord: "移除记录", removeRecordTitle: "移除 Vivado {version} 的记录？",
+    removeRecordBody: "{path}\n\n只从安装管理和版本列表移除，不删除磁盘文件。\n\n{bindings} 个工程绑定此安装，{history} 个工程曾使用此版本。工程记录和绑定保留，失效提示仍会显示。{defaultNote}\n\n可以撤销移除；同一路径恢复可用后也可重新发现。",
+    removeDefaultNote: "\n此失效安装还是默认版本，移除后会清除该默认设置。",
+    recordRemoved: "已移除 Vivado {version} 的失效记录。工程记录与绑定保留。",
+    removedRecords: "已移除 {count} 条失效记录。", undoRemove: "撤销上次移除", recordRestored: "已恢复 Vivado {version} 的记录，仍标记为失效。",
+    installRecovered: "已模拟恢复同一路径的 Vivado {version}；原绑定重新可用。",
+    removeHint: "失效安装可移除记录；不会删除文件，也不会自动改绑工程。",
+    projectPathHelp: "检查磁盘或共享目录是否已连接，或浏览其他工程。此工程仍保留在最近列表中。",
+    pathUnavailableLabel: "路径失效", versionUnavailableLabel: "版本失效",
+    bindingUnavailableHelp: "绑定的 Vivado {version} 不可用，请选择可用的替代版本。",
+    versionUnavailableHelp: "上次使用的 Vivado {version} 不可用，本次可选择其他可用版本。"
   },
   en: {
     previewTitle: "Vivado Launcher / Design preview", language: "Language", theme: "Appearance", systemTheme: "System", lightTheme: "Light", darkTheme: "Dark",
@@ -85,7 +96,18 @@ const translations = {
     rankedCount: "{count} matches · Ranked", unavailableVersion: "Version unavailable", unavailableBinding: "Binding unavailable", unavailableHistory: "Last version unavailable",
     unavailableInstall: "Unavailable", unavailableInstallHint: "The original installation path is unavailable. Its record is kept; choose an available installation.",
     unavailableVersionOption: "Unavailable · Cannot select", availableCount: "{count} available installations", bindingLabel: "Bound version {version}", historyUnavailableDescription: "Last used version {version} is unavailable",
-    bindingUnavailableDescription: "Bound version {version} is unavailable", projectUnavailableShort: "Project unavailable"
+    bindingUnavailableDescription: "Bound version {version} is unavailable", projectUnavailableShort: "Project unavailable",
+    removeRecord: "Remove record", removeRecordTitle: "Remove the Vivado {version} record?",
+    removeRecordBody: "{path}\n\nRemove it from installation management and the version picker. No files are deleted.\n\n{bindings} projects are bound to this installation; {history} projects last used this version. Project records and bindings stay intact, including unavailable warnings.{defaultNote}\n\nYou can undo removal. The same path can be rediscovered once it becomes available.",
+    removeDefaultNote: "\nThis is also the default installation; removing it clears that default.",
+    recordRemoved: "Removed the unavailable Vivado {version} record. Project records and bindings are kept.",
+    removedRecords: "{count} unavailable records removed.", undoRemove: "Undo last removal", recordRestored: "Restored the Vivado {version} record, still marked unavailable.",
+    installRecovered: "Simulated recovery of Vivado {version} at the same path. Existing bindings are available again.",
+    removeHint: "Remove unavailable installation records without deleting files or changing project bindings.",
+    projectPathHelp: "Check the drive or network share, or browse for another project. This project stays in the recent list.",
+    pathUnavailableLabel: "Path unavailable", versionUnavailableLabel: "Version unavailable",
+    bindingUnavailableHelp: "Bound Vivado {version} is unavailable. Choose an available replacement.",
+    versionUnavailableHelp: "Last used Vivado {version} is unavailable. You can choose another available version."
   }
 };
 
@@ -115,7 +137,7 @@ const baseProjects = [
 const state = {
   projects: [], installs: [], selectedProject: null, selectedInstall: null, defaultInstall: "xilinx-2024", source: "bindingSource",
   query: "", scenario: "normal", scanning: false, launching: false, status: null, log: null, scanTimer: null, launchTimer: null,
-  noLog: true, noJournal: true, extraArgs: "", confirmAction: null, searchTimer: null
+  noLog: true, noJournal: true, extraArgs: "", confirmAction: null, searchTimer: null, removedInstalls: []
 };
 
 function translate(key, values = {}) {
@@ -177,7 +199,7 @@ function knownInstalls() {
     const original = baseInstalls.find(install => install.id === project.bound);
     installs.push({ id: project.bound, version: boundVersion(project), path: project.boundPath || original?.path || "—", available: false });
   }
-  return installs;
+  return installs.filter(install => !state.removedInstalls.some(removed => removed.id === install.id));
 }
 function highlightedText(className, value, positions, offset = 0) {
   const node = make("span", className);
@@ -246,6 +268,7 @@ function selectProject(project) {
 
 function renderProjects() {
   const list = element("project-list");
+  const unifiedWarnings = Boolean(element("project-issues"));
   const results = rankedProjects();
   const projects = results.map(result => result.item);
   const signature = JSON.stringify([preferences.language, state.query, projects.map(project => [project.id, project.path, project.lastVersion, project.available, project.bound, projectVersionState(project)])]);
@@ -273,22 +296,31 @@ function renderProjects() {
     row.dataset.projectId = project.id;
     const versionState = projectVersionState(project);
     row.classList.toggle("has-unavailable-version", versionState.unavailable);
+    row.classList.toggle("has-unavailable-project", !project.available);
+    const hasWarning = versionState.unavailable || !project.available;
+    row.classList.toggle("has-warning", unifiedWarnings && hasWarning);
     row.setAttribute("role", "option");
     row.setAttribute("aria-selected", String(state.selectedProject?.id === project.id));
     row.setAttribute("aria-label", `${project.name}, ${parentPath(project.path)}, ${translate(versionState.unavailable ? versionState.description : versionState.label, { version: versionState.version })}${project.available ? "" : `, ${translate("missingProjectLabel")}`}`);
     const fileIcon = make("span", "project-file-icon");
-    fileIcon.append(icon(project.available ? "file" : "warning"));
+    fileIcon.append(icon(unifiedWarnings || project.available ? "file" : "warning"));
     const description = make("span", "project-row-description");
     const parent = parentPath(project.path);
     description.append(highlightedText("project-row-title", project.name, results[index].positions, Array.from(parent.normalize()).length + 1), highlightedText("project-row-path", parent, results[index].positions));
-    if (!project.available) description.append(make("span", "project-path-warning", translate("projectUnavailableShort")));
-    const version = make("span", `project-row-version${versionState.unavailable ? " unavailable-version" : ""}`);
+    if (!project.available && !unifiedWarnings) description.append(make("span", "project-path-warning", translate("projectUnavailableShort")));
+    const version = make("span", `project-row-version${versionState.unavailable ? " unavailable-version" : ""}${unifiedWarnings && hasWarning ? " warning-state" : ""}`);
     const versionNumber = make("span", "version-number");
-    if (versionState.unavailable) versionNumber.append(icon("warning"));
+    if (unifiedWarnings ? hasWarning : versionState.unavailable) versionNumber.append(icon("warning"));
     versionNumber.append(document.createTextNode(versionState.version));
     version.append(versionNumber);
-    if (versionState.unavailable) version.append(make("span", "version-warning-label", translate(versionState.warning)));
-    else if (project.bound) version.append(icon("link"));
+    if (unifiedWarnings) {
+      if (!project.available) version.append(make("span", "row-warning-label project-path-warning", translate("pathUnavailableLabel")));
+      if (versionState.unavailable) version.append(make("span", "row-warning-label version-warning-label", translate(project.bound ? "unavailableBinding" : "versionUnavailableLabel")));
+      if (!hasWarning && project.bound) version.append(icon("link"));
+    } else {
+      if (versionState.unavailable) version.append(make("span", "version-warning-label", translate(versionState.warning)));
+      else if (project.bound) version.append(icon("link"));
+    }
     row.append(fileIcon, description, version);
     list.append(row);
     if (state.selectedProject?.id === project.id) list.setAttribute("aria-activedescendant", row.id);
@@ -304,12 +336,15 @@ function renderProjects() {
 
 function renderDetails() {
   const project = state.selectedProject;
+  const issues = element("project-issues");
+  if (issues) { issues.replaceChildren(); issues.hidden = true; }
+  element("project-details").classList.toggle("has-unavailable-project", Boolean(project && !project.available));
   element("project-details").hidden = !project;
   element("detail-empty").hidden = Boolean(project);
   if (!project) return;
   element("project-name").textContent = project.name;
   element("project-path").textContent = project.path;
-  element("last-opened").textContent = project.available ? (project.lastVersion ? `${translate(project.opened)} · ${translate("lastVersion", { version: project.lastVersion })}` : translate("neverOpened")) : translate("missingProjectLabel");
+  element("last-opened").textContent = project.available || issues ? (project.lastVersion ? `${translate(project.opened)} · ${translate("lastVersion", { version: project.lastVersion })}` : translate("neverOpened")) : translate("missingProjectLabel");
   const version = element("version");
   version.replaceChildren();
   if (!state.selectedInstall) {
@@ -334,6 +369,20 @@ function renderDetails() {
   else if (project.bound && project.bound !== state.selectedInstall) source = "mismatchSource";
   text("selection-source", source, { version: boundVersion(project) });
   element("selection-source").classList.toggle("warning", ["missingBinding", "mismatchSource", "noInstallsHint"].includes(source));
+  if (issues) {
+    const versionState = projectVersionState(project);
+    const appendIssue = (label, description) => {
+      const issue = make("div", "project-issue");
+      const content = make("div", "");
+      content.append(make("strong", "", translate(label)), make("p", "", translate(description, { version: versionState.version })));
+      issue.append(icon("warning"), content);
+      issues.append(issue);
+    };
+    if (!project.available) appendIssue("pathUnavailableLabel", "projectPathHelp");
+    if (versionState.unavailable) appendIssue(project.bound ? "unavailableBinding" : "versionUnavailableLabel", project.bound ? "bindingUnavailableHelp" : "versionUnavailableHelp");
+    issues.hidden = issues.childElementCount === 0;
+    element("selection-source").hidden = versionState.unavailable;
+  }
   const isBound = Boolean(state.selectedInstall && project.bound === state.selectedInstall);
   text("binding-text", isBound ? "bound" : "bind");
   element("bind-button").setAttribute("aria-pressed", String(isBound));
@@ -349,7 +398,7 @@ function renderStatus() {
   let tone = "";
   let values = {};
   if (!state.selectedProject) { key = "noMatchStatus"; hint = "dropHint"; tone = "warning"; }
-  else if (!state.selectedProject.available) { key = "projectUnavailable"; hint = "projectUnavailableHint"; tone = "warning"; }
+  else if (!state.selectedProject.available) { key = element("project-issues") ? "pathUnavailableLabel" : "projectUnavailable"; hint = "projectUnavailableHint"; tone = "warning"; }
   else if (!availableInstalls().length) { key = "noInstalls"; hint = "noInstallsHint"; tone = "warning"; }
   else if (!currentInstall()) { key = "versionRequired"; hint = "readyHint"; tone = "warning"; }
   if (state.status) { ({ key, hint = "readyHint", tone = "", values = {} } = state.status); }
@@ -369,6 +418,7 @@ function renderStatus() {
 function renderInstalls() {
   const list = element("install-list");
   const focusedInstall = document.activeElement?.dataset.defaultId;
+  const focusedRemoval = document.activeElement?.dataset.removeId;
   list.replaceChildren();
   element("install-count").textContent = availableInstalls().length;
   element("install-count").setAttribute("aria-label", translate("availableCount", { count: availableInstalls().length }));
@@ -406,11 +456,63 @@ function renderInstalls() {
       heading.append(button);
     }
     card.append(heading, make("p", "", install.path));
-    if (unavailable) card.append(make("p", "install-warning", translate("unavailableInstallHint")));
+    if (unavailable) {
+      card.append(make("p", "install-warning", translate("unavailableInstallHint")));
+      if (element("removed-install-actions")) {
+        const actions = make("div", "install-record-actions");
+        const remove = make("button", "secondary-button remove-record", translate("removeRecord"));
+        remove.type = "button";
+        remove.dataset.removeId = install.id;
+        remove.setAttribute("aria-label", `${translate("removeRecord")} Vivado ${install.version}, ${install.path}`);
+        remove.disabled = state.scanning || state.launching;
+        remove.addEventListener("click", () => requestRemoveInstall(install));
+        actions.append(remove);
+        card.append(actions);
+      }
+    }
     list.append(card);
   });
   element("refresh-button").disabled = state.scanning || state.launching;
+  if (element("removed-install-actions")) {
+    element("removed-install-actions").hidden = state.removedInstalls.length === 0;
+    text("removed-install-count", "removedRecords", { count: state.removedInstalls.length });
+    element("undo-remove").disabled = state.scanning || state.launching;
+  }
   if (focusedInstall) list.querySelector(`[data-default-id="${focusedInstall}"]`)?.focus();
+  if (focusedRemoval) Array.from(list.querySelectorAll("[data-remove-id]")).find(button => button.dataset.removeId === focusedRemoval)?.focus();
+}
+
+function requestRemoveInstall(install) {
+  if (state.scanning || state.launching || install.available !== false) return;
+  const projects = [...new Map([...state.projects, ...(state.selectedProject ? [state.selectedProject] : [])].map(project => [project.id, project])).values()];
+  const values = {
+    version: install.version, path: install.path,
+    bindings: projects.filter(project => project.bound === install.id).length,
+    history: projects.filter(project => project.lastVersion === install.version).length,
+    defaultNote: install.id === state.defaultInstall ? translate("removeDefaultNote") : ""
+  };
+  confirmAction("removeRecordTitle", "removeRecordBody", "removeRecord", values, () => {
+    if (state.scanning || state.launching || state.removedInstalls.some(removed => removed.id === install.id)) return;
+    state.removedInstalls.push({ ...install });
+    for (const project of projects.filter(project => project.bound === install.id)) {
+      project.boundVersion = install.version;
+      project.boundPath = install.path;
+    }
+    if (state.defaultInstall === install.id) state.defaultInstall = null;
+    if (state.selectedInstall === install.id || state.source !== "manualSource") pickInstall();
+    messageAt("manage-status", "recordRemoved", { version: install.version });
+    render();
+    element("undo-remove").focus();
+  });
+}
+
+function undoRemoveInstall() {
+  if (state.scanning || state.launching) return;
+  const install = state.removedInstalls.pop();
+  if (!install) return;
+  messageAt("manage-status", "recordRestored", { version: install.version });
+  render();
+  Array.from(element("install-list").querySelectorAll("[data-remove-id]")).find(button => button.dataset.removeId === install.id)?.focus();
 }
 
 function render() { renderProjects(); renderDetails(); renderStatus(); renderInstalls(); }
@@ -422,7 +524,7 @@ function resetScenario(scenario) {
   element("search-announcement").textContent = "";
   state.projects = baseProjects.map(project => ({ ...project }));
   state.installs = baseInstalls.map(install => ({ ...install }));
-  Object.assign(state, { selectedProject: state.projects[0], defaultInstall: "xilinx-2024", scenario, query: "", scanning: false, launching: false, status: null, log: null, noLog: true, noJournal: true, extraArgs: "" });
+  Object.assign(state, { selectedProject: state.projects[0], defaultInstall: "xilinx-2024", scenario, query: "", scanning: false, launching: false, status: null, log: null, noLog: true, noJournal: true, extraArgs: "", removedInstalls: [] });
   element("search").value = "";
   element("no-log").checked = true;
   element("no-journal").checked = true;
@@ -433,7 +535,7 @@ function resetScenario(scenario) {
   for (const id of ["manage-status", "settings-status", "browse-error", "install-error"]) clearMessage(id);
   if (scenario === "empty") { state.projects = []; state.selectedProject = null; }
   if (scenario === "no-installs") state.installs = [];
-  if (scenario === "missing-binding") {
+  if (["missing-binding", "missing-both", "warning-comparison"].includes(scenario)) {
     const missing = { id: "missing-2023", version: "2023.2", path: "D:\\EDA Tools\\Vivado\\2023.2", available: false };
     state.installs.push(missing);
     state.selectedProject.bound = missing.id;
@@ -441,7 +543,8 @@ function resetScenario(scenario) {
     state.selectedProject.boundPath = missing.path;
     state.projects[3].lastVersion = missing.version;
   }
-  if (scenario === "missing-project") state.selectedProject.available = false;
+  if (["missing-project", "missing-both"].includes(scenario)) state.selectedProject.available = false;
+  if (scenario === "warning-comparison") state.projects[2].available = false;
   pickInstall();
   render();
   if (scenario === "scan") scan();
@@ -533,7 +636,14 @@ function scan() {
   render();
   state.scanTimer = setTimeout(() => {
     const known = new Set(state.installs.map(install => pathKey(install.path)));
-    baseInstalls.forEach(install => { if (!known.has(pathKey(install.path))) state.installs.push({ ...install }); });
+    baseInstalls.forEach(install => {
+      if (!known.has(pathKey(install.path))) state.installs.push({ ...install });
+      else if (element("removed-install-actions")) {
+        const recovered = state.installs.find(candidate => pathKey(candidate.path) === pathKey(install.path));
+        recovered.available = true;
+        state.removedInstalls = state.removedInstalls.filter(removed => pathKey(removed.path) !== pathKey(install.path));
+      }
+    });
     state.installs.sort((first, second) => second.version.localeCompare(first.version, undefined, { numeric: true }));
     state.scanning = false;
     if (state.source !== "manualSource") pickInstall();
@@ -583,17 +693,22 @@ element("refresh-button").addEventListener("click", scan);
 element("reset-button").addEventListener("click", () => resetScenario("normal"));
 element("scenario").addEventListener("change", () => resetScenario(element("scenario").value));
 element("add-path-button").addEventListener("click", () => { element("add-path-form").hidden = false; element("install-path").focus(); });
+element("undo-remove")?.addEventListener("click", undoRemoveInstall);
 element("add-path-form").addEventListener("submit", event => {
   event.preventDefault();
   const path = normalizePath(element("install-path").value).replace(/\\+$/, "");
   if (!isAbsolutePath(path)) { messageAt("install-error", "invalidInstall"); return; }
-  if (state.installs.some(install => pathKey(install.path) === pathKey(path))) { messageAt("install-error", "duplicateInstall"); return; }
+  const existing = state.installs.find(install => pathKey(install.path) === pathKey(path));
+  if (existing && (!element("removed-install-actions") || existing.available !== false)) { messageAt("install-error", "duplicateInstall"); return; }
   const version = path.match(/(?:^|\\)(20\d{2}\.\d+)(?:\\|$)/)?.[1] || "—";
-  const install = { id: `custom-${state.installs.length}`, path, version };
-  state.installs.push(install);
+  const removed = state.removedInstalls.find(install => pathKey(install.path) === pathKey(path));
+  const install = existing || { id: removed?.id || `custom-${state.installs.length}`, path, version };
+  install.available = true;
+  if (!existing) state.installs.push(install);
+  state.removedInstalls = state.removedInstalls.filter(record => pathKey(record.path) !== pathKey(path));
   state.installs.sort((first, second) => second.version.localeCompare(first.version, undefined, { numeric: true }));
-  if (!state.selectedInstall && !state.selectedProject?.bound) pickInstall();
-  messageAt("manage-status", "installAdded", { version });
+  if (!state.selectedInstall && (!state.selectedProject?.bound || state.selectedProject.bound === install.id)) pickInstall();
+  messageAt("manage-status", existing || removed ? "installRecovered" : "installAdded", { version });
   element("add-path-form").reset();
   element("add-path-form").hidden = true;
   clearMessage("install-error");

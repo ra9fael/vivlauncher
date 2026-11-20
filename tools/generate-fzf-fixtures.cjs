@@ -1,13 +1,13 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const root = path.resolve(__dirname, '..', '..');
+const root = path.resolve(__dirname, '..');
 const bundlePath = path.join(root, 'prototypes/wpf-launcher/vendor/fzf-0.5.2.umd.js');
 const fzf = require(bundlePath);
 const bundle = fs.readFileSync(bundlePath, 'utf8');
 const normalizationCode = bundle.slice(bundle.indexOf('const z={'), bundle.indexOf('function E(t)'));
 const normalization = vm.runInNewContext(normalizationCode + '; z');
-fs.writeFileSync(path.join(root, 'wpf/VivLauncher.Core/FzfNormalization.json'), JSON.stringify(normalization, null, 2) + '\n');
+fs.writeFileSync(path.join(root, 'VivLauncher.Core/FzfNormalization.json'), JSON.stringify(normalization, null, 2) + '\n');
 const prototype = fs.readFileSync(path.join(root, 'prototypes/wpf-launcher/app.js'), 'utf8');
 const projects = vm.runInNewContext(prototype.match(/const baseProjects = (\[[\s\S]*?\n\]);/)[1]);
 const texts = [...projects.map(project => project.path), 'D:\\设计\\工程一\\信号处理.xpr', 'C:\\FPGA projects\\café_École.xpr', 'fooBar123_Baz', ' hello world ', 'D:\\😀\\设计.xpr'];
@@ -30,5 +30,5 @@ for (let iteration = 0; iteration < 500; iteration++) {
   add(text, query);
 }
 add('abc'.repeat(600), 'abc'.repeat(40));
-fs.writeFileSync(path.join(root, 'wpf/VivLauncher.Tests/fzf-fixtures.json'), JSON.stringify(fixtures) + '\n');
+fs.writeFileSync(path.join(root, 'VivLauncher.Tests/fzf-fixtures.json'), JSON.stringify(fixtures) + '\n');
 console.log(`Generated ${fixtures.length} fzf parity fixtures and ${Object.keys(normalization).length} normalization mappings.`);

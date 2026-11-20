@@ -2,7 +2,7 @@
 
 Open `index.html` directly in a current Edge or Chrome browser. No server, package installation, network connection, or build step is required. The HTML, CSS, JavaScript, and SVG icons are local files.
 
-This is the approved review deliverable for the WPF migration. Its native implementation is now available in [`../../wpf/`](../../wpf/README.md). The existing C++ application remains available. Future GUI changes still require a reviewed HTML or SVG draft first.
+The native implementation of this approved prototype is documented in the [repository README](../../README.md). The original C++ application is maintained on `legacy-win32`. Future GUI changes require a reviewed HTML or SVG draft first.
 
 ## Try the workflow
 

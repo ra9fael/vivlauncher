@@ -4,7 +4,7 @@ Verified on Windows x64, 2026-11-20, using .NET SDK 10.0.403. The default releas
 
 ## Single-EXE distribution
 
-- `wpf/artifacts/win-x64-exe/` contains exactly one file: `vivlauncher.exe`, **888,573 bytes** (about 868 KiB).
+- The single-file release in `artifacts/win-x64-exe/` is **888,573 bytes** (about 868 KiB).
 - The published EXE passes the CLI checks and all 21 native UI checks below, without companion DLL/configuration files. Embedded third-party notices are readable using `--licenses`.
 - A copy of only the EXE was launched against an isolated .NET lookup root containing hostfxr but no shared frameworks. The standard native .NET dialog displayed **“You must install or update .NET to run this application.”**, **“Download it now”**, details identifying `Microsoft.NETCore.App` 10.0.0 x64, and a Microsoft download link.
 - A second isolated lookup root supplied the core runtime but omitted the desktop runtime. The dialog correctly identified `Microsoft.WindowsDesktop.App` 10.0.0 x64 and its download link.
@@ -34,7 +34,7 @@ The published framework-dependent single executable passes **21 checks** using W
 - Successful creation of the harmless fixture process closes the launcher and updates recent history.
 - Language and dark-theme preferences persist.
 
-Screenshots are generated in `wpf/artifacts/qa/`: Chinese/light, fzf highlights, installation management, settings, English/dark, 720 × 480 minimum window, and launch failure. The default and minimum-size layouts were visually reviewed; lists and details scroll at the minimum size.
+Screenshots are generated in `artifacts/qa/`: Chinese/light, fzf highlights, installation management, settings, English/dark, 720 × 480 minimum window, and launch failure. The default and minimum-size layouts were visually reviewed; lists and details scroll at the minimum size.
 
 ## Remaining real-environment verification
 
@@ -43,4 +43,11 @@ Screenshots are generated in `wpf/artifacts/qa/`: Chinese/light, fzf highlights,
 - IME composition is guarded in the event handlers; a live Chinese IME conversion and real Explorer drag/drop have not been automated.
 - File associations are implemented but were not applied to the user's registry during verification.
 
-The original C++ source and unrelated `.claude` files are unchanged.
+The original C++ source is preserved on `legacy-win32`. Personal `.claude` files are not part of this repository.
+
+## Repository migration verification
+
+- The WPF Release build, 1,365 tests, and single-file publish passed from the new repository root. The fzf generator reproduced all 1,354 cases and 622 normalization mappings byte for byte.
+- A copy of the published EXE in an empty directory passed the CLI smoke checks, including embedded license output, and all 21 native UI checks.
+- Both offline prototype suites passed from the migrated files, including all 21 revision 03 groups.
+- The original Win32 Release x64 build and logic tests passed from a separate `legacy-win32` checkout. Git LFS verified the original documentation screenshot.

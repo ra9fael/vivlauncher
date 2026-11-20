@@ -1,0 +1,27 @@
+{
+  "checks": [
+    "icon and review board preserve the same two source polygons",
+    "offline page loads its icons and shared prototype without duplicate IDs",
+    "fzf nonconsecutive matching and all state survive edition switching",
+    "new review controls translate without losing application inputs",
+    "net10/light: warnings, disabled selection, mismatch, Escape and IME guard",
+    "net10/dark: warnings, disabled selection, mismatch, Escape and IME guard",
+    "net48/light: warnings, disabled selection, mismatch, Escape and IME guard",
+    "net48/dark: warnings, disabled selection, mismatch, Escape and IME guard",
+    "all four independently themed control samples retain contrast and work",
+    "system appearance responds to live preference changes",
+    "empty, no-install, missing-file, scanning and launch-error scenarios",
+    "empty search result and keyboard browsing remain available",
+    "English review remains within 720px and 390px viewports",
+    "net10/light: missing project stays highlighted on selection and fzf filtering",
+    "net10/dark: missing project stays highlighted on selection and fzf filtering",
+    "net48/light: missing project stays highlighted on selection and fzf filtering",
+    "net48/dark: missing project stays highlighted on selection and fzf filtering",
+    "all three warning types share right-column position, typography and detail placement across editions, languages and themes",
+    "net10/zh-CN: cancel, removal, rescan, undo and same-path recovery preserve binding identity",
+    "net48/en: cancel, removal, rescan, undo and same-path recovery preserve binding identity",
+    "review SVG renders and browser reports no JavaScript errors"
+  ],
+  "browser": "157.0.4341.60",
+  "errors": []
+}
