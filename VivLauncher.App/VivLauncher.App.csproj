@@ -10,10 +10,24 @@
     <NoWarn>$(NoWarn);WPF0001</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Resource Include="Resources/app.ico" />
     <ProjectReference Include="../VivLauncher.Core/VivLauncher.Core.csproj" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <EmbeddedResource Include="../prototypes/wpf-launcher/vendor/fzf-LICENSE.txt" LogicalName="Licenses.fzf.txt" />
     <EmbeddedResource Include="../THIRD-PARTY-NOTICES.md" LogicalName="Licenses.Notices.txt" />
     <EmbeddedResource Include="../licenses/CommunityToolkit.Mvvm-LICENSE.md" LogicalName="Licenses.CommunityToolkit.Mvvm.txt" />
+  </ItemGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net48'">
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <PackageReference Include="Fody" Version="6.8.2" PrivateAssets="all" />
+    <PackageReference Include="Costura.Fody" Version="6.0.0" PrivateAssets="all" />
+    <EmbeddedResource Include="../licenses/Costura.Fody-LICENSE.txt" LogicalName="Licenses.Costura.txt" />
+    <EmbeddedResource Include="$(NuGetPackageRoot)microsoft.bcl.asyncinterfaces/8.0.0/LICENSE.TXT" LogicalName="Licenses.DotNetCompatibility.txt" />
+    <EmbeddedResource Include="$(NuGetPackageRoot)microsoft.bcl.asyncinterfaces/8.0.0/THIRD-PARTY-NOTICES.TXT" LogicalName="Licenses.DotNetNotices.txt" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' != 'net48'">
+    <Page Remove="Themes/Compatible.xaml" />
   </ItemGroup>
 </Project>

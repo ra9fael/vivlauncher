@@ -1,6 +1,11 @@
 using System.Diagnostics;
 using System.Text;
+#if NET48
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Json;
+#else
 using System.Text.Json;
+#endif
 using VivLauncher.Core;
 using Xunit;
 
@@ -13,15 +18,35 @@ public sealed class CoreTests : IDisposable
     public CoreTests() => Directory.CreateDirectory(directory);
     public void Dispose() => Directory.Delete(directory, true);
 
+#if NET48
+    [DataContract]
+    public sealed class Fixture
+    {
+        [DataMember(Name = "text")] public string Text { get; set; } = "";
+        [DataMember(Name = "query")] public string Query { get; set; } = "";
+        [DataMember(Name = "score")] public int? Score { get; set; }
+        [DataMember(Name = "positions")] public int[] Positions { get; set; } = [];
+    }
+#else
     public sealed record Fixture(string Text, string Query, int? Score, int[] Positions);
-    public static IEnumerable<object[]> ParityFixtures() => JsonSerializer.Deserialize<Fixture[]>(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "fzf-fixtures.json")), new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!.Select(item => new object[] { item.Text, item.Query, item.Score ?? -1, item.Positions });
+#endif
+    public static IEnumerable<object[]> ParityFixtures()
+    {
+        using var stream = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "fzf-fixtures.json"));
+#if NET48
+        var fixtures = (Fixture[])new DataContractJsonSerializer(typeof(Fixture[])).ReadObject(stream);
+#else
+        var fixtures = JsonSerializer.Deserialize<Fixture[]>(stream, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+#endif
+        return fixtures.Select(item => new object[] { item.Text, item.Query, item.Score ?? -1, item.Positions });
+    }
     [Theory]
     [MemberData(nameof(ParityFixtures))]
     public void SearchMatchesPrototype(string text, string query, int score, int[] positions)
     {
         var result = FzfMatcher.Match(text, query);
         Assert.Equal(score, result?.Score ?? -1);
-        Assert.Equal(positions, result?.Positions.Order().ToArray() ?? []);
+        Assert.Equal(positions, result?.Positions.OrderBy(position => position).ToArray() ?? []);
     }
     [Fact]
     public void BindingIdentityIsPathNotVersion()
@@ -82,6 +107,41 @@ public sealed class CoreTests : IDisposable
         Assert.Equal(root, Store.DefaultPath(installs));
     }
     [Fact]
+    public void RemovedInstallStaysHiddenUntilUndoOrSamePathRecovery()
+    {
+        var original = Path.Combine(directory, "Xilinx", "2023.2", "Vivado");
+        var alternate = Path.Combine(directory, "AMD", "2023.2", "Vivado");
+        var project = Path.Combine(directory, "工程.xpr");
+        File.WriteAllText(Path.Combine(directory, "paths.txt"), original);
+        Store.Bind(project, original);
+        Store.Remember(project, "2023.2");
+        Store.Write("vivlauncher", "default_install", original);
+        var discovery = new InstallationDiscovery(Store);
+        var missing = Assert.Single(discovery.Scan(false));
+        Store.RemoveInstall(missing, original);
+        Assert.Empty(discovery.Scan(false));
+        Assert.Equal("", Store.DefaultPath([missing]));
+        Assert.Equal(original, Store.Binding(project).InstallPath);
+        Assert.Equal("2023.2", Assert.Single(Store.Recent()).Version);
+
+        Store.RestoreInstall(original);
+        Assert.False(Assert.Single(discovery.Scan(false)).Available);
+        Assert.Equal("", Store.DefaultPath([missing]));
+        Store.RemoveInstall(missing, "");
+        Directory.CreateDirectory(Path.Combine(alternate, "bin"));
+        File.WriteAllText(Path.Combine(alternate, "bin", "vivado.bat"), "@exit /b 0");
+        Store.AddPath(alternate);
+        var alternateOnly = discovery.Scan(false);
+        Assert.Equal(alternate, Assert.Single(alternateOnly).Path);
+        Assert.Equal("MissingBinding", Selection.Choose(Store.Binding(project), "", alternateOnly).Reason);
+
+        Directory.CreateDirectory(Path.Combine(original, "bin"));
+        File.WriteAllText(Path.Combine(original, "bin", "vivado.bat"), "@exit /b 0");
+        var restored = discovery.Scan(false);
+        Assert.False(Store.IsRemoved(original));
+        Assert.Equal(original, Selection.Choose(Store.Binding(project), "", restored).Install?.Path);
+    }
+    [Fact]
     public void SettingsFailuresAreReported()
     {
         var file = Path.Combine(directory, "not-a-directory");
@@ -103,13 +163,18 @@ public sealed class CoreTests : IDisposable
     {
         var installation = new Installation(@"C:\AMD tools\2025.2\Vivado", "2025.2", true);
         var project = Path.Combine(directory, "设计 & test!%.xpr");
-        var start = LaunchService.BuildStartInfo(installation, project, new(true, false, "-tclargs \"hello world\" \"quoted\\\"value\""), true);
-        Assert.Equal(new[] { installation.BatchPath, "-nolog", "-tclargs", "hello world", "quoted\"value", project }, start.ArgumentList);
+        var start = LaunchService.BuildStartInfo(installation, project, new(true, false, "-tclargs \"hello world\" \"quoted\\\"value\" \"\" \"C:\\with space\\\\\""), true);
+        var expected = new[] { installation.BatchPath, "-nolog", "-tclargs", "hello world", "quoted\"value", "", @"C:\with space\", project };
+#if NET48
+        Assert.Equal(expected, LaunchService.ParseArguments(start.Arguments));
+#else
+        Assert.Equal(expected, start.ArgumentList);
+#endif
         Assert.Equal(directory, start.WorkingDirectory);
         Assert.False(start.UseShellExecute);
     }
     [Fact]
-    public async Task BatchFallbackPassesMetacharactersAsData()
+    public void BatchFallbackPassesMetacharactersAsData()
     {
         var root = Path.Combine(directory, "install & spaced !%PATH%", "2025.2");
         var bin = Path.Combine(root, "bin");
@@ -118,9 +183,9 @@ public sealed class CoreTests : IDisposable
         File.WriteAllText(Path.Combine(bin, "vivado.bat"), "@echo off\r\nsetlocal DisableDelayedExpansion\r\n>\"%VIV_TEST_CAPTURE%\" echo %1\r\n>>\"%VIV_TEST_CAPTURE%\" echo %2\r\n>>\"%VIV_TEST_CAPTURE%\" echo %3\r\n>>\"%VIV_TEST_CAPTURE%\" echo %4\r\n", Encoding.ASCII);
         var project = Path.Combine(directory, "project &!%PATH%.xpr");
         var start = LaunchService.BuildStartInfo(new(root, "2025.2", true), project, new(true, true, "\"hello &!%PATH%\""), false);
-        start.Environment["VIV_TEST_CAPTURE"] = capture;
+        start.EnvironmentVariables["VIV_TEST_CAPTURE"] = capture;
         using var process = Process.Start(start)!;
-        await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
+        if (!process.WaitForExit(10000)) { process.Kill(); throw new TimeoutException(); }
         Assert.Equal(0, process.ExitCode);
         var lines = File.ReadAllLines(capture);
         Assert.Equal(new[] { "\"-nolog\"", "\"-nojournal\"", "\"hello &!%PATH%\"", "\"" + project + "\"" }, lines);
@@ -138,5 +203,10 @@ public sealed class CoreTests : IDisposable
         Assert.Equal(Paths.ProjectKey(@"D:\Projects\hello.xpr"), Paths.ProjectKey(@"d:\projects\HELLO.xpr"));
         Assert.Equal("2025.2", Paths.VersionLabel(@"C:\AMDDesignTools\2025.2\Vivado"));
         Assert.True(Paths.Same(@"C:\Vivado\2025.2\", @"c:/vivado/2025.2"));
+        Assert.False(Paths.Same(@"C:\", "C:"));
+        Assert.True(Paths.Same(@"\\server\share\Vivado\", @"//SERVER/share/vivado"));
+        Assert.True(Paths.IsProject(@"\\server\share\工程.xpr"));
+        Assert.False(Paths.IsProject(@"C:工程.xpr"));
+        Assert.False(Paths.IsProject(@"\工程.xpr"));
     }
 }

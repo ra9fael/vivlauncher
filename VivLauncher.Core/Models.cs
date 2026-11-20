@@ -22,16 +22,27 @@ public static class Paths
     public static string Absolute(string value) => Path.GetFullPath(value.Trim().Trim('"'));
     public static string InstallRoot(string value)
     {
-        var path = Path.TrimEndingDirectorySeparator(Absolute(value));
+        var path = TrimEndingSeparator(Absolute(value));
         return Path.GetFileName(path).Equals("bin", StringComparison.OrdinalIgnoreCase)
             ? Path.GetDirectoryName(path)! : path;
     }
-    public static bool Same(string? first, string? second) => !string.IsNullOrEmpty(first)
-        && !string.IsNullOrEmpty(second)
-        && string.Equals(Path.TrimEndingDirectorySeparator(first.Replace('/', '\\')),
-            Path.TrimEndingDirectorySeparator(second.Replace('/', '\\')), StringComparison.OrdinalIgnoreCase);
-    public static bool IsProject(string value) => Path.IsPathFullyQualified(value.Trim().Trim('"'))
-        && value.Trim().Trim('"').EndsWith(".xpr", StringComparison.OrdinalIgnoreCase);
+    private static string TrimEndingSeparator(string path)
+    {
+        var root = Path.GetPathRoot(path);
+        var trimmed = path.TrimEnd('\\', '/');
+        return root is { Length: > 0 } && trimmed.Length < root.Length ? root : trimmed;
+    }
+    public static bool Same(string? first, string? second) => first is { Length: > 0 }
+        && second is { Length: > 0 }
+        && string.Equals(TrimEndingSeparator(first.Replace('/', '\\')),
+            TrimEndingSeparator(second.Replace('/', '\\')), StringComparison.OrdinalIgnoreCase);
+    public static bool IsProject(string value)
+    {
+        var path = value.Trim().Trim('"').Replace('/', '\\');
+        var fullyQualified = path.StartsWith(@"\\", StringComparison.Ordinal)
+            || (path.Length >= 3 && path[0] is (>= 'A' and <= 'Z') or (>= 'a' and <= 'z') && path[1] == ':' && path[2] == '\\');
+        return fullyQualified && path.EndsWith(".xpr", StringComparison.OrdinalIgnoreCase);
+    }
     public static string ProjectKey(string path)
     {
         var hash = 14695981039346656037UL;
@@ -45,7 +56,7 @@ public static class Paths
     public static string VersionLabel(string path)
     {
         var matches = Regex.Matches(path, @"(?:^|[\\/])(\d{4}\.\d+)(?=[\\/]|$)");
-        return matches.Count > 0 ? matches[^1].Groups[1].Value : Path.GetFileName(path);
+        return matches.Count > 0 ? matches[matches.Count - 1].Groups[1].Value : Path.GetFileName(path);
     }
     public static Version VersionNumber(string value) => Version.TryParse(value, out var version) ? version : new(0, 0);
 }

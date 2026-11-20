@@ -35,15 +35,14 @@ public sealed class SettingsStore
     {
         var bytes = File.ReadAllBytes(IniPath);
         if (bytes.Length >= 2 && bytes[0] == 0xff && bytes[1] == 0xfe) return;
-        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         var contents = bytes.Length >= 3 && bytes[0] == 0xef && bytes[1] == 0xbb && bytes[2] == 0xbf
             ? Encoding.UTF8.GetString(bytes, 3, bytes.Length - 3)
-            : Encoding.GetEncoding((int)GetACP()).GetString(bytes);
+            : AnsiEncoding().GetString(bytes);
         var backup = IniPath + ".pre-wpf.bak";
         if (!File.Exists(backup)) File.Copy(IniPath, backup);
         var temporary = IniPath + ".tmp";
         File.WriteAllText(temporary, contents, Encoding.Unicode);
-        File.Move(temporary, IniPath, true);
+        ReplaceFile(temporary, IniPath);
         WritePrivateProfileString(null!, null!, null, IniPath);
     }
 
@@ -52,8 +51,8 @@ public sealed class SettingsStore
         var buffer = new char[65536];
         var count = GetPrivateProfileSection(section, buffer, buffer.Length, IniPath);
         if (count >= buffer.Length - 2) throw new IOException("Settings section exceeds the supported size.");
-        return new string(buffer, 0, (int)count).Split('\0', StringSplitOptions.RemoveEmptyEntries)
-            .Where(line => line.Contains('=')).Select(line => line[(line.IndexOf('=') + 1)..]).ToArray();
+        return new string(buffer, 0, (int)count).Split(new[] { '\0' }, StringSplitOptions.RemoveEmptyEntries)
+            .Where(line => line.Contains('=')).Select(line => line.Substring(line.IndexOf('=') + 1)).ToArray();
     }
 
     public IReadOnlyList<RecentProject> Recent()
@@ -64,12 +63,12 @@ public sealed class SettingsStore
             var value = Read("recent_projects", $"recent_{index}");
             if (value.Length == 0) continue;
             var separator = value.IndexOf('|');
-            var path = separator < 0 ? value : value[(separator + 1)..];
+            var path = separator < 0 ? value : value.Substring(separator + 1);
             try
             {
                 path = Paths.Absolute(path);
                 if (!result.Any(item => Paths.Same(item.Path, path)))
-                    result.Add(new(path, separator < 0 ? "" : value[..separator]));
+                    result.Add(new(path, separator < 0 ? "" : value.Substring(0, separator)));
             }
             catch (ArgumentException) { }
         }
@@ -80,7 +79,7 @@ public sealed class SettingsStore
     {
         lock (gate)
         {
-            var recent = Recent().Where(item => !Paths.Same(item.Path, path)).Prepend(new(path, version)).Take(20).ToArray();
+            var recent = new[] { new RecentProject(path, version) }.Concat(Recent().Where(item => !Paths.Same(item.Path, path))).Take(20).ToArray();
             for (var index = 0; index < 20; index++)
                 Write("recent_projects", $"recent_{index}", index < recent.Length ? $"{recent[index].Version}|{recent[index].Path}" : null);
         }
@@ -105,6 +104,30 @@ public sealed class SettingsStore
         var path = Read("vivlauncher", "default_install");
         return path.Length > 0 ? path : installs.FirstOrDefault(item => item.Version == Read("vivlauncher", "default_version"))?.Path ?? "";
     }
+    public IReadOnlyList<string> RemovedInstalls() => ReadSectionValues("removed_installs");
+    public bool IsRemoved(string path) => Read("removed_installs", Paths.ProjectKey(path)).Length > 0;
+    public void RemoveInstall(Installation installation, string defaultPath)
+    {
+        if (installation.Available || installation.Path.Length == 0) throw new InvalidOperationException("Only unavailable installation paths can be removed.");
+        lock (gate)
+        {
+            if (File.Exists(installation.BatchPath)) throw new InvalidOperationException("The installation is available again. Scan for installations first.");
+            if (Paths.Same(defaultPath, installation.Path))
+            {
+                Write("vivlauncher", "default_version", null);
+                Write("vivlauncher", "default_install", null);
+            }
+            Write("removed_installs", Paths.ProjectKey(installation.Path), installation.Path);
+        }
+    }
+    public void RestoreInstall(string path)
+    {
+        lock (gate)
+        {
+            Write("known_installs", Paths.ProjectKey(path), path);
+            Write("removed_installs", Paths.ProjectKey(path), null);
+        }
+    }
     public LaunchOptions Options() => new(Read("launch", "no_log", "1") != "0",
         Read("launch", "no_journal", "1") != "0", Read("launch", "extra_args"));
     public void SaveOptions(LaunchOptions options)
@@ -122,8 +145,7 @@ public sealed class SettingsStore
         try { contents = File.ReadAllText(file, new UTF8Encoding(false, true)); }
         catch (DecoderFallbackException)
         {
-            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-            contents = File.ReadAllText(file, Encoding.GetEncoding((int)GetACP()));
+            contents = File.ReadAllText(file, AnsiEncoding());
         }
         return contents.Split('\n').Select(line => line.Trim()).Where(line => line.Length > 0 && !line.StartsWith('#')).ToArray();
     }
@@ -133,13 +155,38 @@ public sealed class SettingsStore
         if (!File.Exists(Path.Combine(path, "bin", "vivado.bat"))) throw new IOException("bin\\vivado.bat was not found: " + path);
         lock (gate)
         {
-            var paths = CustomPaths().Where(item => !Paths.Same(item, path)).Append(path).ToArray();
+            var paths = CustomPaths().Where(item => !Paths.Same(item, path)).Concat(new[] { path }).ToArray();
             Directory.CreateDirectory(DirectoryPath);
             var temp = Path.Combine(DirectoryPath, "paths.txt.tmp");
             File.WriteAllLines(temp, paths, new UTF8Encoding(false));
-            File.Move(temp, Path.Combine(DirectoryPath, "paths.txt"), true);
+            ReplaceFile(temp, Path.Combine(DirectoryPath, "paths.txt"));
+            if (IsRemoved(path)) RestoreInstall(path);
         }
     }
+
+    private static Encoding AnsiEncoding()
+    {
+#if !NET48
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif
+        return Encoding.GetEncoding((int)GetACP());
+    }
+
+    private static void ReplaceFile(string source, string destination)
+    {
+#if NET48
+        const int replaceExisting = 1;
+        if (!MoveFileEx(source, destination, replaceExisting)) throw new Win32Exception(Marshal.GetLastWin32Error());
+#else
+        File.Move(source, destination, true);
+#endif
+    }
+
+#if NET48
+    [DllImport("kernel32", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool MoveFileEx(string source, string destination, int flags);
+#endif
 
     [DllImport("kernel32", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern uint GetPrivateProfileString(string section, string key, string fallback, StringBuilder value, int size, string file);

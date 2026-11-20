@@ -4,4 +4,10 @@
 
 **CommunityToolkit.Mvvm 8.4.0** is distributed under the MIT license: https://github.com/CommunityToolkit/dotnet/blob/main/License.md.
 
-Run `vivlauncher.exe --licenses` to display this notice and the full bundled license texts. The release is framework-dependent: users install the Microsoft .NET Desktop Runtime separately.
+The .NET Framework edition embeds application dependencies using **Costura.Fody 6.0.0** and **Fody 6.8.2**, MIT-licensed tools from the Fody project. Costura's assembly loader is included in the Framework executable. https://github.com/Fody/Costura
+
+**.NET compatibility libraries** used by the Framework edition include Microsoft.Bcl.AsyncInterfaces 8.0.0, System.ComponentModel.Annotations 5.0.0, System.Memory 4.6.0, System.Buffers 4.6.0, System.Numerics.Vectors 4.6.0, System.Runtime.CompilerServices.Unsafe 6.1.0, and System.Threading.Tasks.Extensions 4.5.4. They are distributed under the .NET MIT license. The corresponding license and third-party notices are embedded in that edition. https://github.com/dotnet/runtime
+
+The blue icon uses arrow geometry from the AMD header SVG. The AMD mark belongs to its owner. https://www.amd.com/content/dam/code/images/header/amd-header-logo.svg
+
+Run the executable with `--licenses` to display the bundled notices and license texts.

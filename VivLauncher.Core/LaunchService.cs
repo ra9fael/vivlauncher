@@ -31,8 +31,12 @@ public sealed class LaunchService(string? logPath = null)
         if (useWrapper ?? File.Exists(wrapper))
         {
             start.FileName = wrapper;
-            start.ArgumentList.Add(installation.BatchPath);
+            arguments.Insert(0, installation.BatchPath);
+#if NET48
+            start.Arguments = string.Join(" ", arguments.Select(QuoteArgument));
+#else
             foreach (var argument in arguments) start.ArgumentList.Add(argument);
+#endif
         }
         else
         {
@@ -41,10 +45,23 @@ public sealed class LaunchService(string? logPath = null)
             if (arguments.Any(argument => argument.Contains('"')))
                 throw new ArgumentException("This installation has no vvgl.exe; embedded quotes in arguments are not supported by its batch fallback.");
             var prefix = "VIVLAUNCHER_" + Guid.NewGuid().ToString("N") + "_";
-            for (var index = 0; index < arguments.Count; index++) start.Environment[prefix + index] = arguments[index];
+            for (var index = 0; index < arguments.Count; index++) start.EnvironmentVariables[prefix + index] = arguments[index];
             start.Arguments = "/d /s /v:off /c \"" + string.Join(" ", Enumerable.Range(0, arguments.Count).Select(index => $"\"%{prefix}{index}%\"")) + "\"";
         }
         return start;
+    }
+    private static string QuoteArgument(string argument)
+    {
+        var result = new StringBuilder().Append('"');
+        var slashes = 0;
+        foreach (var character in argument)
+        {
+            if (character == '\\') { slashes++; continue; }
+            result.Append('\\', character == '"' ? slashes * 2 + 1 : slashes);
+            result.Append(character);
+            slashes = 0;
+        }
+        return result.Append('\\', slashes * 2).Append('"').ToString();
     }
     public void Launch(Installation installation, string project, LaunchOptions options)
     {
@@ -53,7 +70,11 @@ public sealed class LaunchService(string? logPath = null)
             if (!File.Exists(project)) throw new FileNotFoundException("Project is unavailable.", project);
             if (!File.Exists(installation.BatchPath)) throw new FileNotFoundException("Vivado installation is unavailable.", installation.BatchPath);
             var start = BuildStartInfo(installation, project, options);
-            Log($"Project: {project}\nInstallation: {installation.Path}\nWorking directory: {start.WorkingDirectory}\nExecutable: {start.FileName}\nArguments: {string.Join(" ", start.ArgumentList)} {start.Arguments}\nOptions: {options}");
+            var command = start.Arguments;
+#if !NET48
+            if (start.ArgumentList.Count > 0) command = string.Join(" ", start.ArgumentList.Select(QuoteArgument));
+#endif
+            Log($"Project: {project}\nInstallation: {installation.Path}\nWorking directory: {start.WorkingDirectory}\nExecutable: {start.FileName}\nArguments: {command}\nOptions: {options}");
             using var process = Process.Start(start) ?? throw new IOException("Windows did not create a process.");
             Log($"Process created: {process.Id}");
         }

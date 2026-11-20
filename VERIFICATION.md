@@ -1,10 +1,26 @@
 # WPF implementation verification
 
+## Dual-edition build
+
+On 2026-11-21, both Release targets built with zero warnings or errors. Each target passed 1,366 tests, including all 1,354 fzf parity cases and the installation removal, undo, and same-path recovery test.
+
+| Edition | Standalone EXE size | Runtime verified |
+| --- | ---: | --- |
+| .NET 10 | 509,693 bytes | .NET 10 Desktop Runtime x64 |
+| .NET Framework 4.8 | 487,936 bytes | .NET Framework 4.8.1, Release 534296 |
+
+- Each EXE passed CLI and 31 native UI checks from an empty directory. The Framework EXE loaded with its bundled assemblies. The CLI checks also passed when both versions alternated reading and writing the same isolated installation profile.
+- Native UI checks cover the three shared warning labels, removal and cancellation, keeping project bindings, scanning without reviving removed records, and undo. Screenshots under `artifacts/qa/` show Chinese/light and English/dark in both editions.
+- Isolated apphost tests covered a missing .NET 10 runtime and a core-only installation. Both displayed the standard runtime download prompt before accessing the application profile.
+- A Windows 10 environment with Framework 4.8, native folder-picker interaction, live IME and Explorer drag/drop, shell association rendering, real Vivado launch, and 150%/200% monitor transitions remain release checks.
+
+## Original .NET 10 verification
+
 Verified on Windows x64, 2026-11-20, using .NET SDK 10.0.403. The default release is now a framework-dependent Windows x64 single EXE, with the required .NET 10 Desktop Runtime installed separately by the user. The earlier self-contained build is retained as a historical output.
 
 ## Single-EXE distribution
 
-- The single-file release in `artifacts/win-x64-exe/` is **888,573 bytes** (about 868 KiB).
+- The original single-file release was **888,573 bytes** (about 868 KiB).
 - The published EXE passes the CLI checks and all 21 native UI checks below, without companion DLL/configuration files. Embedded third-party notices are readable using `--licenses`.
 - A copy of only the EXE was launched against an isolated .NET lookup root containing hostfxr but no shared frameworks. The standard native .NET dialog displayed **“You must install or update .NET to run this application.”**, **“Download it now”**, details identifying `Microsoft.NETCore.App` 10.0.0 x64, and a Microsoft download link.
 - A second isolated lookup root supplied the core runtime but omitted the desktop runtime. The dialog correctly identified `Microsoft.WindowsDesktop.App` 10.0.0 x64 and its download link.

@@ -7,7 +7,32 @@ const fzf = require(bundlePath);
 const bundle = fs.readFileSync(bundlePath, 'utf8');
 const normalizationCode = bundle.slice(bundle.indexOf('const z={'), bundle.indexOf('function E(t)'));
 const normalization = vm.runInNewContext(normalizationCode + '; z');
-fs.writeFileSync(path.join(root, 'VivLauncher.Core/FzfNormalization.json'), JSON.stringify(normalization, null, 2) + '\n');
+const mappings = Object.entries(normalization);
+function literals(values) {
+  const lines = [];
+  for (let index = 0; index < values.length; index += 16) {
+    const escaped = values.slice(index, index + 16).map(code => `\\u${Number(code).toString(16).padStart(4, '0')}`);
+    lines.push(`        "${escaped.join('')}"`);
+  }
+  return lines.join(' +\n');
+}
+fs.writeFileSync(path.join(root, 'VivLauncher.Core/FzfNormalization.cs'), `namespace VivLauncher.Core;
+
+internal static class FzfNormalization
+{
+    private const string Source =
+${literals(mappings.map(([code]) => code))};
+    private const string Target =
+${literals(mappings.map(([, character]) => character.charCodeAt(0)))};
+
+    internal static Dictionary<char, char> Create()
+    {
+        var result = new Dictionary<char, char>(Source.Length);
+        for (var index = 0; index < Source.Length; index++) result.Add(Source[index], Target[index]);
+        return result;
+    }
+}
+`);
 const prototype = fs.readFileSync(path.join(root, 'prototypes/wpf-launcher/app.js'), 'utf8');
 const projects = vm.runInNewContext(prototype.match(/const baseProjects = (\[[\s\S]*?\n\]);/)[1]);
 const texts = [...projects.map(project => project.path), 'D:\\设计\\工程一\\信号处理.xpr', 'C:\\FPGA projects\\café_École.xpr', 'fooBar123_Baz', ' hello world ', 'D:\\😀\\设计.xpr'];

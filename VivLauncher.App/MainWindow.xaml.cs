@@ -20,7 +20,7 @@ public partial class MainWindow : Window
         Model.Confirm = (title, body) => Task.FromResult(Dialogs.Confirm(this, model, title, body));
         Model.CloseRequested += Close;
         TextCompositionManager.AddPreviewTextInputStartHandler(this, (_, _) => composing = true);
-        TextCompositionManager.AddPreviewTextInputHandler(this, (_, _) => { if (composing) compositionEnded = Environment.TickCount64; composing = false; });
+        TextCompositionManager.AddPreviewTextInputHandler(this, (_, _) => { if (composing) compositionEnded = MonotonicMilliseconds; composing = false; });
         Loaded += async (_, _) =>
         {
             SearchBox.Focus();
@@ -56,16 +56,17 @@ public partial class MainWindow : Window
         if (args.Key is Key.Up or Key.Down)
         {
             var index = ProjectList.SelectedIndex;
-            ProjectList.SelectedIndex = Math.Clamp(index + (args.Key == Key.Down ? 1 : -1), 0, Math.Max(0, Model.Projects.Count - 1));
+            ProjectList.SelectedIndex = Math.Max(0, Math.Min(index + (args.Key == Key.Down ? 1 : -1), Model.Projects.Count - 1));
             if (ProjectList.SelectedItem is not null) ProjectList.ScrollIntoView(ProjectList.SelectedItem);
             args.Handled = true;
         }
-        else if (args.Key == Key.Enter && Environment.TickCount64 - compositionEnded > 200)
+        else if (args.Key == Key.Enter && MonotonicMilliseconds - compositionEnded > 200)
         {
             Model.LaunchCommand.Execute(null);
             args.Handled = true;
         }
     }
+    private static long MonotonicMilliseconds => (long)(System.Diagnostics.Stopwatch.GetTimestamp() * (1000.0 / System.Diagnostics.Stopwatch.Frequency));
     private void OnListKeyDown(object sender, KeyEventArgs args)
     {
         if (args.Key == Key.Enter && !composing) { Model.LaunchCommand.Execute(null); args.Handled = true; }

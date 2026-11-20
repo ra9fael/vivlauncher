@@ -14,7 +14,7 @@ public static class WindowCapture {
     [DllImport("kernel32.dll", CharSet=CharSet.Unicode)] public static extern bool WritePrivateProfileString(string section, string key, string value, string path);
 }
 '@
-$output = [IO.Path]::GetFullPath("$PSScriptRoot/../artifacts/qa")
+$output = [IO.Path]::GetFullPath("$PSScriptRoot/../artifacts/qa/" + [IO.Path]::GetFileNameWithoutExtension($AppPath))
 $fixture = Join-Path $output ('profile-' + [Guid]::NewGuid().ToString('N'))
 [IO.Directory]::CreateDirectory($fixture) | Out-Null
 $settings = Join-Path $fixture 'settings.ini'
@@ -40,9 +40,9 @@ $projectNames = @('hifi/project_1.xpr','zu15/project_1.xpr','信号处理/工程
 for ($index = 0; $index -lt $projectNames.Count; $index++) {
     $projectPath = Join-Path $fixture ('projects/' + $projectNames[$index])
     [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($projectPath)) | Out-Null
-    [IO.File]::WriteAllText($projectPath, '<Project />')
+    if ($index -ne 4) { [IO.File]::WriteAllText($projectPath, '<Project />') }
     $projectPaths += $projectPath
-    $version = if ($index -eq 3) { '2022.2' } else { '2025.2' }
+    $version = if ($index -in 3,4) { '2022.2' } else { '2025.2' }
     Set-Setting 'recent_projects' "recent_$index" "$version|$projectPath"
 }
 Set-Setting 'project_installs' (Get-Key $projectPaths[0]) $missing
@@ -55,6 +55,18 @@ $script:checks = 0
 function Assert-True($condition, $message) { if (-not $condition) { throw $message }; $script:checks++; Write-Output "PASS $message" }
 function Find-Id($root, $id) {
     $root.FindFirst([Windows.Automation.TreeScope]::Descendants, [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::AutomationIdProperty, $id))
+}
+function Find-Window($title) {
+    $desktop = [Windows.Automation.AutomationElement]::RootElement
+    $processCondition = [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ProcessIdProperty, $process.Id)
+    $nameCondition = [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::NameProperty, $title)
+    $condition = [Windows.Automation.AndCondition]::new($processCondition, $nameCondition)
+    for ($attempt = 0; $attempt -lt 30; $attempt++) {
+        $window = $desktop.FindFirst([Windows.Automation.TreeScope]::Children, $condition)
+        if (-not $window) { $window = $root.FindFirst([Windows.Automation.TreeScope]::Descendants, $condition) }
+        if ($window) { return $window }
+        Start-Sleep -Milliseconds 150
+    }
 }
 function Invoke-Button($element) { $element.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke(); Start-Sleep -Milliseconds 180 }
 function Set-Text($element, $text) { $element.GetCurrentPattern([Windows.Automation.ValuePattern]::Pattern).SetValue($text); Start-Sleep -Milliseconds 200 }
@@ -89,6 +101,7 @@ try {
     Start-Sleep -Milliseconds 200
     Capture $root '01-native-light-zh.png'
     Assert-True (-not $launch.Current.IsEnabled) 'Missing binding blocks launch'
+    Assert-True ((Find-Id $root 'ProjectIssues').Current.Name -eq '绑定失效') 'Binding warning uses the shared details area'
     Set-Text $search 'pjt1'
     $list = Find-Id $root 'Projects'
     $items = $list.FindAll([Windows.Automation.TreeScope]::Children, [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty, [Windows.Automation.ControlType]::ListItem))
@@ -109,6 +122,11 @@ try {
     Assert-True ((Find-Id $root 'Bind').Current.Name -eq '记住此工程的版本') 'Unbinding updates the selected history project'
     Set-Text $search (Join-Path $fixture 'missing.xpr')
     Assert-True (-not $launch.Current.IsEnabled) 'Unavailable pasted project cannot launch'
+    Assert-True ((Find-Id $root 'ProjectIssues').Current.Name -eq '路径失效') 'Path warning uses the shared details area'
+    Set-Text $search 'pynq_base_zu15'
+    Assert-True ((Find-Id $root 'ProjectIssues').Current.Name -eq '版本失效') 'Version warning uses the shared details area'
+    Set-Text $search 'long directory'
+    Assert-True ((Find-Id $root 'ProjectIssues').Current.Name -eq '路径失效, 版本失效') 'Simultaneous warnings stack in the same details area'
     Set-Text $search ''
     $picker = Find-Id $root 'VersionPicker'
     $picker.GetCurrentPattern([Windows.Automation.ExpandCollapsePattern]::Pattern).Expand()
@@ -133,6 +151,22 @@ try {
     if (-not $manage) { $manage = [Windows.Automation.AutomationElement]::RootElement.FindFirst([Windows.Automation.TreeScope]::Children, [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::NameProperty, '安装管理')) }
     Assert-True ($null -ne (Find-Id $manage 'InstallationList')) 'Installation manager opens'
     Capture $manage '03-native-installations.png'
+    Invoke-Button (Find-Id $manage 'RemoveInstall')
+    $removal = Find-Window '移除失效的安装记录？'
+    Assert-True ($null -ne $removal) 'Removal asks for confirmation'
+    Invoke-Button (Find-Id $removal 'DialogCancel')
+    Assert-True ($null -ne (Find-Id $manage 'RemoveInstall')) 'Cancel keeps the missing installation'
+    Invoke-Button (Find-Id $manage 'RemoveInstall')
+    $removal = Find-Window '移除失效的安装记录？'
+    Capture $removal '08-native-remove-confirmation.png'
+    Invoke-Button (Find-Id $removal 'DialogConfirm')
+    Start-Sleep -Milliseconds 400
+    Assert-True ($null -eq (Find-Id $manage 'RemoveInstall')) 'Confirmed removal hides the installation'
+    Assert-True ([IO.File]::ReadAllText($settings).Contains((Get-Key $projectPaths[0]) + '=' + $missing)) 'Removal keeps the project binding'
+    Invoke-Button (Find-Id $manage 'Scan')
+    Assert-True ($null -eq (Find-Id $manage 'RemoveInstall')) 'Rescan does not revive the unavailable record'
+    Invoke-Button (Find-Id $manage 'UndoRemoval')
+    Assert-True ($null -ne (Find-Id $manage 'RemoveInstall')) 'Undo restores the unavailable record'
     $manage.GetCurrentPattern([Windows.Automation.WindowPattern]::Pattern).Close()
     Invoke-Button (Find-Id $root 'Settings')
     $settingsWindow = $root.FindFirst([Windows.Automation.TreeScope]::Descendants, [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty, [Windows.Automation.ControlType]::Window))
@@ -166,9 +200,14 @@ try {
     $resolvedBatch = [IO.Path]::GetFullPath($batchPath)
     if (-not $resolvedBatch.StartsWith($fixture + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Fixture boundary check failed' }
     Remove-Item -LiteralPath $resolvedBatch
+    $search.SetFocus()
     [Windows.Forms.SendKeys]::SendWait('{ENTER}')
-    Start-Sleep -Milliseconds 450
-    Assert-True ((Find-Id $root 'Status').Current.Name.Contains('Launch failed')) 'Enter reports launch failure without closing window'
+    for ($attempt = 0; $attempt -lt 30; $attempt++) {
+        $status = (Find-Id $root 'Status').Current.Name
+        if ($status.Contains('Launch failed')) { break }
+        Start-Sleep -Milliseconds 100
+    }
+    Assert-True ($status.Contains('Launch failed')) "Enter reports launch failure without closing window ($status)"
     Capture $root '07-native-launch-error.png'
     [IO.File]::WriteAllText($batchPath, '@exit /b 0')
     Invoke-Button $launch

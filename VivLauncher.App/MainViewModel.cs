@@ -21,6 +21,7 @@ public partial class MainViewModel : ObservableObject
     private bool initialized;
     private bool processCreated;
     private bool resolvingProject;
+    private string? lastRemovedPath;
     private readonly bool isolated;
     [ObservableProperty] private string query = "";
     [ObservableProperty] private ProjectRow? selectedProject;
@@ -55,6 +56,7 @@ public partial class MainViewModel : ObservableObject
     public bool HasProject => SelectedProject is not null;
     public bool IsEmpty => Projects.Count == 0;
     public bool IsIdle => !Scanning && !Launching;
+    public bool CanUndoRemoval => lastRemovedPath is not null;
     public string EmptyTitle => Text[Query.Length == 0 ? "Empty" : "NoResults"];
     public string EmptyHint => Text[Query.Length == 0 ? "EmptyHint" : "NoResultsHint"];
     public string ProjectCount => $"{Projects.Count} {Text[Query.Length == 0 ? "Count" : "Matches"]}";
@@ -74,7 +76,7 @@ public partial class MainViewModel : ObservableObject
         var recent = await Task.Run(() => Store.Recent().Select(item => new ProjectRow(item, Store.Binding(item.Path), File.Exists(item.Path))).ToList());
         history = recent;
         ApplyFilter();
-        if (!string.IsNullOrEmpty(project)) await SelectPathAsync(project);
+        if (project is { Length: > 0 }) await SelectPathAsync(project);
         await ScanAsync();
     }
 
@@ -92,8 +94,10 @@ public partial class MainViewModel : ObservableObject
                 var installs = new InstallationDiscovery(Store).Scan(!isolated);
                 return (Installs: installs, Availability: paths.ToDictionary(path => path, File.Exists, StringComparer.OrdinalIgnoreCase));
             });
+            var removedVersions = new HashSet<string>(Store.RemovedInstalls().Select(Paths.VersionLabel));
+            if (lastRemovedPath is not null && !Store.IsRemoved(lastRemovedPath)) lastRemovedPath = null;
             var historicalVersions = history.Concat(Projects).SelectMany(item => new[] { item.LastVersion, item.Binding.LegacyVersion })
-                .Where(version => version.Length > 0 && !result.Installs.Any(install => install.Version == version)).Distinct();
+                .Where(version => version.Length > 0 && !removedVersions.Contains(version) && !result.Installs.Any(install => install.Version == version)).Distinct();
             installations = result.Installs.Concat(historicalVersions.Select(version => new Installation("", version, false)))
                 .OrderByDescending(item => Paths.VersionNumber(item.Version)).ThenBy(item => item.Path, StringComparer.OrdinalIgnoreCase).ToArray();
             defaultPath = Store.DefaultPath(installations);
@@ -247,6 +251,32 @@ public partial class MainViewModel : ObservableObject
         try { await Task.Run(() => Store.AddPath(path)); await ScanAsync(); }
         catch (Exception error) { Report(error); }
     }
+    public async Task RemoveInstallAsync(InstallRow item, Func<string, string, bool> confirm)
+    {
+        if (!IsIdle || !item.Removable) return;
+        try
+        {
+            var bound = Store.ReadSectionValues("project_installs").Count(path => Paths.Same(path, item.Path));
+            var recent = Store.Recent().Count(project => project.Version == item.Version);
+            if (!confirm(Text["RemoveTitle"], string.Format(Text["RemoveBody"], item.Version, item.Path, bound, recent))) return;
+            Store.RemoveInstall(item.Model, defaultPath);
+            lastRemovedPath = item.Path;
+            await ScanAsync();
+        }
+        catch (Exception error) { Report(error); }
+    }
+    [RelayCommand]
+    private async Task UndoRemovalAsync()
+    {
+        if (!IsIdle || lastRemovedPath is null) return;
+        try
+        {
+            Store.RestoreInstall(lastRemovedPath);
+            lastRemovedPath = null;
+            await ScanAsync();
+        }
+        catch (Exception error) { Report(error); }
+    }
     [RelayCommand]
     private async Task ClearRecentAsync()
     {
@@ -297,6 +327,7 @@ public partial class MainViewModel : ObservableObject
     public void Report(Exception error) => Notice = Text["Error"] + ": " + error.Message;
     private void Refresh()
     {
+        OnPropertyChanged(nameof(CanUndoRemoval));
         foreach (var name in new[] { nameof(CanLaunch), nameof(CanBind), nameof(HasProject), nameof(IsEmpty), nameof(IsIdle), nameof(EmptyTitle), nameof(EmptyHint), nameof(ProjectCount), nameof(InstallCount), nameof(LastUsed), nameof(BindLabel), nameof(SelectionWarning), nameof(SelectionSource), nameof(Status), nameof(StatusHint), nameof(StatusWarning) }) OnPropertyChanged(name);
     }
 }

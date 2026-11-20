@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '**'
+
+jobs:
+  release:
+    if: github.event.created && !github.event.deleted
+    runs-on: windows-2025
+    timeout-minutes: 20
+    concurrency:
+      group: release-${{ github.ref }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Test both targets
+        run: ./build.ps1 -Action Test
+
+      - name: Publish both targets
+        run: ./build.ps1 -Action Publish
+
+      - name: Smoke-test the published executables
+        run: |
+          ./tools/smoke-cli.ps1 -AppPath ./artifacts/net10-win-x64/vivlauncher-net10-win-x64.exe
+          ./tools/smoke-cli.ps1 -AppPath ./artifacts/net48-win-x64/vivlauncher-net48-win-x64.exe -Runtime '.NET Framework 4.8'
+
+      - name: Prepare release assets and SHA-256 checksums
+        run: |
+          $releaseDirectory = New-Item -ItemType Directory -Path "$env:RUNNER_TEMP/vivlauncher-release"
+          foreach ($edition in 'net10', 'net48') {
+              $fileName = "vivlauncher-$edition-win-x64.exe"
+              $executable = Join-Path $releaseDirectory.FullName $fileName
+              Copy-Item -LiteralPath "artifacts/$edition-win-x64/$fileName" -Destination $executable
+              $digest = (Get-FileHash -LiteralPath $executable -Algorithm SHA256).Hash.ToLowerInvariant()
+              "$digest *$fileName" | Set-Content -LiteralPath "$executable.sha256" -Encoding ascii
+          }
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          Set-Location -LiteralPath "$env:RUNNER_TEMP/vivlauncher-release"
+          $assets = @(
+              'vivlauncher-net10-win-x64.exe'
+              'vivlauncher-net10-win-x64.exe.sha256'
+              'vivlauncher-net48-win-x64.exe'
+              'vivlauncher-net48-win-x64.exe.sha256'
+          )
+          gh release create $env:GITHUB_REF_NAME --repo $env:GITHUB_REPOSITORY --verify-tag --generate-notes @assets
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub Release creation failed.' }

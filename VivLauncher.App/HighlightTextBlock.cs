@@ -20,7 +20,7 @@ public sealed class HighlightTextBlock : TextBlock
             var highlighted = value.Positions.Contains(index);
             var end = index + 1;
             while (end < value.Text.Length && value.Positions.Contains(end) == highlighted) end++;
-            var run = new Run(value.Text[index..end]);
+            var run = new Run(value.Text.Substring(index, end - index));
             if (highlighted)
             {
                 run.SetResourceReference(TextElement.BackgroundProperty, "MatchSurface");

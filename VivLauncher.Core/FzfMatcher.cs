@@ -1,19 +1,17 @@
 using System.Globalization;
 using System.Text;
-using System.Text.Json;
 
 namespace VivLauncher.Core;
 
-public sealed record FzfResult(int Score, IReadOnlySet<int> Positions);
+public sealed record FzfResult(int Score, IReadOnlyCollection<int> Positions);
 
 public static class FzfMatcher
 {
     private sealed record Term(string Text, int Type, bool Inverse, bool Sensitive, bool Normalize);
-    private static readonly Dictionary<int, string> Normalization = JsonSerializer.Deserialize<Dictionary<int, string>>(
-        typeof(FzfMatcher).Assembly.GetManifestResourceStream("VivLauncher.Core.FzfNormalization.json")!)!;
+    private static readonly Dictionary<char, char> Normalization = FzfNormalization.Create();
     private static char Normalize(char character)
     {
-        return Normalization.TryGetValue(character, out var normalized) ? normalized[0] : character;
+        return Normalization.TryGetValue(character, out var normalized) ? normalized : character;
     }
     private static int Class(char character)
     {
@@ -38,7 +36,7 @@ public static class FzfMatcher
         var set = new List<Term>();
         var switchSet = false;
         var afterBar = false;
-        foreach (var token in query.Replace("\\ ", "\t").Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        foreach (var token in query.Replace("\\ ", "\t").Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries))
         {
             var text = token.Replace('\t', ' ');
             var lower = text.ToLowerInvariant();
@@ -54,10 +52,10 @@ public static class FzfMatcher
             afterBar = false;
             var type = 0;
             var inverse = text.StartsWith('!');
-            if (inverse) { type = 1; text = text[1..]; }
-            if (text != "$" && text.EndsWith('$')) { type = 3; text = text[..^1]; }
-            if (text.StartsWith('\'')) { type = inverse ? 0 : 1; text = text[1..]; }
-            else if (text.StartsWith('^')) { type = type == 3 ? 4 : 2; text = text[1..]; }
+            if (inverse) { type = 1; text = text.Substring(1); }
+            if (text != "$" && text.EndsWith('$')) { type = 3; text = text.Substring(0, text.Length - 1); }
+            if (text.StartsWith('\'')) { type = inverse ? 0 : 1; text = text.Substring(1); }
+            else if (text.StartsWith('^')) { type = type == 3 ? 4 : 2; text = text.Substring(1); }
             if (text.Length == 0) continue;
             if (switchSet) { sets.Add(set); set = []; }
             set.Add(new(text, type, inverse, sensitive, normalize));
@@ -219,7 +217,7 @@ public static class FzfMatcher
         var end = text.Length;
         if (term.Type is 2 or 4 && !char.IsWhiteSpace(term.Text[0]))
             while (start < end && char.IsWhiteSpace(text[start])) start++;
-        if (term.Type is 3 or 4 && !char.IsWhiteSpace(term.Text[^1]))
+        if (term.Type is 3 or 4 && !char.IsWhiteSpace(term.Text[term.Text.Length - 1]))
             while (end > start && char.IsWhiteSpace(text[end - 1])) end--;
         if (end - start < term.Text.Length) return null;
         if (term.Type == 3) start = end - term.Text.Length;
@@ -230,15 +228,15 @@ public static class FzfMatcher
             var bestBonus = -1;
             for (var offset = 0; offset <= text.Length - term.Text.Length; offset++)
             {
-                if (!transformed.AsSpan(offset).StartsWith(term.Text, StringComparison.Ordinal)) continue;
+                if (offset > transformed.Length - term.Text.Length || string.CompareOrdinal(transformed, offset, term.Text, 0, term.Text.Length) != 0) continue;
                 var bonus = BonusAt(text, offset);
                 if (bonus > bestBonus) { best = offset; bestBonus = bonus; }
                 if (bonus == 8) break;
             }
             start = best;
         }
-        if (start < 0 || !transformed.AsSpan(start).StartsWith(term.Text, StringComparison.Ordinal)) return null;
-        return term.Type == 4 ? new(24 * term.Text.Length + 8, Enumerable.Range(start, term.Text.Length).ToHashSet())
+        if (start < 0 || start > transformed.Length - term.Text.Length || string.CompareOrdinal(transformed, start, term.Text, 0, term.Text.Length) != 0) return null;
+        return term.Type == 4 ? new(24 * term.Text.Length + 8, new HashSet<int>(Enumerable.Range(start, term.Text.Length)))
             : Score(text, term, start, start + term.Text.Length);
     }
     private static FzfResult Score(string text, Term term, int start, int end)

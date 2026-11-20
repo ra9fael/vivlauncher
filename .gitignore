@@ -16,3 +16,4 @@ bin/
 obj/
 artifacts/
 TestResults/
+FodyWeavers.xsd

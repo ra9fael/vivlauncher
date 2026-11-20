@@ -7,6 +7,7 @@ public sealed class InstallationDiscovery(SettingsStore settings)
     public IReadOnlyList<Installation> Scan(bool includeMachine = true)
     {
         var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var removed = new HashSet<string>(settings.RemovedInstalls(), StringComparer.OrdinalIgnoreCase);
         void Add(string value)
         {
             if (string.IsNullOrWhiteSpace(value)) return;
@@ -16,6 +17,7 @@ public sealed class InstallationDiscovery(SettingsStore settings)
         foreach (var value in settings.CustomPaths()) Add(value);
         foreach (var value in settings.ReadSectionValues("project_installs")) Add(value);
         foreach (var value in settings.ReadSectionValues("known_installs")) Add(value);
+        foreach (var value in removed) Add(value);
         Add(settings.Read("vivlauncher", "default_install"));
         if (includeMachine)
         {
@@ -43,6 +45,13 @@ public sealed class InstallationDiscovery(SettingsStore settings)
             }
         }
         return paths.Select(path => new Installation(path, Paths.VersionLabel(path), File.Exists(Path.Combine(path, "bin", "vivado.bat"))))
+            .Where(install =>
+            {
+                if (!removed.Contains(install.Path)) return true;
+                if (!install.Available) return false;
+                settings.RestoreInstall(install.Path);
+                return true;
+            })
             .OrderByDescending(item => Paths.VersionNumber(item.Version)).ThenBy(item => item.Path, StringComparer.OrdinalIgnoreCase).ToArray();
     }
     private static void ScanChildren(string root, string suffix, Action<string> add)

@@ -33,7 +33,11 @@ public partial class SettingsWindow : Window
             using var program = Registry.CurrentUser.CreateSubKey(@"Software\Classes\VivLauncher.Project");
             program.SetValue("", "Vivado project");
             using var command = program.CreateSubKey(@"shell\open\command");
-            command.SetValue("", $"\"{Environment.ProcessPath}\" \"%1\"");
+            using var process = Process.GetCurrentProcess();
+            var executable = process.MainModule?.FileName ?? throw new IOException("Cannot locate the launcher executable.");
+            command.SetValue("", $"\"{executable}\" \"%1\"");
+            using var icon = program.CreateSubKey("DefaultIcon");
+            icon.SetValue("", $"\"{executable}\",0");
             SHChangeNotify(0x08000000, 0, IntPtr.Zero, IntPtr.Zero);
             model.Notice = model.Text["Saved"];
         }

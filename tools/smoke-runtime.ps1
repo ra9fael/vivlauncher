@@ -1,5 +1,5 @@
 param(
-    [string]$AppPath = "$PSScriptRoot/../artifacts/win-x64-exe/vivlauncher.exe",
+    [string]$AppPath = "$PSScriptRoot/../artifacts/net10-win-x64/vivlauncher-net10-win-x64.exe",
     [switch]$CoreOnly
 )
 $ErrorActionPreference = 'Stop'

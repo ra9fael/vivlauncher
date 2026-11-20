@@ -7,9 +7,9 @@
 - Use representative project names, long paths, duplicate filenames, and meaningful loading, empty, and error states in prototypes.
 - Clearly identify simulated actions. A prototype must not launch Vivado, scan real installations, modify application settings, or register file associations.
 - The `main` branch contains the C# / .NET 10 / WPF application with the official Fluent theme and MVVM. The original C++ application is preserved on `legacy-win32`; do not merge WPF changes into that branch.
-- Planned .NET 10 / .NET Framework 4.8 support shares source and multi-target builds on `main`, not separate runtime branches. Framework 4.8 and the revision 03 GUI remain planned until explicitly implemented and validated.
+- .NET 10 and .NET Framework 4.8 use shared source and multi-target builds on `main`. Keep the common layout in XAML and isolate framework-specific styles and APIs.
 - Support Simplified Chinese and English in the redesigned interface.
-- Publish a framework-dependent Windows x64 single EXE by default. Users install the required .NET Desktop Runtime themselves; rely on the standard .NET apphost missing-runtime prompt. Do not bundle the runtime unless the user explicitly requests it.
+- Publish one Windows x64 EXE per target, with the runtime supplied by the user. Preserve the standard .NET apphost missing-runtime prompt for the modern edition.
 
 ## Working conventions
 
