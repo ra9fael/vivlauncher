@@ -24,7 +24,17 @@ public static class ThemeService
         var action = new Style(typeof(Button), button);
         action.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(16, 9, 16, 9)));
         action.Setters.Add(new Setter(FrameworkElement.MinHeightProperty, 36.0));
+#if NET48
         var primary = new Style(typeof(Button), action);
+#else
+        var primary = new Style(typeof(Button), (Style)Application.Current.FindResource("AccentButtonStyle"));
+        primary.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(16, 9, 16, 9)));
+        primary.Setters.Add(new Setter(FrameworkElement.MinHeightProperty, 36.0));
+        primary.Resources["AccentButtonBackgroundPointerOver"] = new SolidColorBrush(Color.FromRgb(0x00, 0x5F, 0xB2));
+        primary.Resources["AccentButtonBackgroundPressed"] = new SolidColorBrush(Color.FromRgb(0x00, 0x54, 0x9E));
+        primary.Resources["AccentButtonForegroundPointerOver"] = Brushes.White;
+        primary.Resources["AccentButtonForegroundPressed"] = Brushes.White;
+#endif
         primary.Setters.Add(new Setter(Control.BackgroundProperty, new DynamicResourceExtension("Accent")));
         primary.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
         primary.Setters.Add(new Setter(Control.FontWeightProperty, FontWeights.SemiBold));

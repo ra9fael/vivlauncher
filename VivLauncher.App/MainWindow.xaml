@@ -32,7 +32,7 @@
                 <Grid>
                     <TextBox x:Name="SearchBox" Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}" Padding="34,10,42,10" MinHeight="42" AutomationProperties.Name="{Binding Text[Search]}" AutomationProperties.AutomationId="Search" PreviewKeyDown="OnSearchKeyDown" />
                     <Path Data="M10,6 A4,4 0 1 1 2,6 A4,4 0 1 1 10,6 M9,9 L14,14" Stroke="{DynamicResource MutedInk}" StrokeThickness="1.5" StrokeEndLineCap="Round" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Left" IsHitTestVisible="False" />
-                    <TextBlock Text="{Binding Text[Search]}" Foreground="{DynamicResource MutedInk}" Margin="35,0,45,0" VerticalAlignment="Center" IsHitTestVisible="False" TextTrimming="CharacterEllipsis">
+                    <TextBlock Text="{Binding Text[Search]}" Foreground="{DynamicResource MutedInk}" Margin="37,0,45,0" VerticalAlignment="Center" IsHitTestVisible="False" TextTrimming="CharacterEllipsis">
                         <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding Query}" Value=""><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
                     </TextBlock>
                     <TextBlock Text="Ctrl F" Style="{StaticResource Muted}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0" IsHitTestVisible="False" />

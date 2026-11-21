@@ -26,7 +26,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource Line}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox">
-            <Border x:Name="Frame" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}" CornerRadius="3">
+            <Border x:Name="Frame" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="3">
                 <ScrollViewer x:Name="PART_ContentHost" Focusable="False" />
             </Border>
             <ControlTemplate.Triggers>
