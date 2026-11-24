@@ -40,11 +40,11 @@ The short forms `-l`, `-a`, `-h` and `list`, `add`, `help` are also supported. C
 
 ## Releases
 
-Push a new Git tag on the release commit to trigger the workflow. For version `v2.1.1`, run these commands from that commit.
+Push a new Git tag on the release commit to trigger the workflow. For version `v2.2.0`, run these commands from that commit.
 
 ```powershell
-git tag -a v2.1.1 -m "Vivado Launcher v2.1.1"
-git push origin refs/tags/v2.1.1
+git tag -a v2.2.0 -m "Vivado Launcher v2.2.0"
+git push origin refs/tags/v2.2.0
 ```
 
 GitHub Actions tests and publishes both targets on Windows. Once the tests and CLI smoke checks pass, both EXEs and their matching `.exe.sha256` files are available on the [GitHub Releases page](https://github.com/ra9fael/vivlauncher/releases).
