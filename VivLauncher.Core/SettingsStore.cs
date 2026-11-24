@@ -80,13 +80,60 @@ public sealed class SettingsStore
         lock (gate)
         {
             var recent = new[] { new RecentProject(path, version) }.Concat(Recent().Where(item => !Paths.Same(item.Path, path))).Take(20).ToArray();
-            for (var index = 0; index < 20; index++)
-                Write("recent_projects", $"recent_{index}", index < recent.Length ? $"{recent[index].Version}|{recent[index].Path}" : null);
+            SaveRecent(recent);
         }
     }
     public void ClearRecent()
     {
-        for (var index = 0; index < 20; index++) Write("recent_projects", $"recent_{index}", null);
+        lock (gate) SaveRecent([]);
+    }
+    public RecentRemoval? RemoveUnavailableRecent(IEnumerable<string> paths)
+    {
+        var candidates = paths.Select(Paths.Absolute).ToArray();
+        lock (gate)
+        {
+            var before = Recent().ToArray();
+            var removed = before.Where(item => candidates.Any(path => Paths.Same(path, item.Path)) && !File.Exists(item.Path)).ToArray();
+            if (removed.Length == 0) return null;
+            var remaining = before.Where(item => !removed.Contains(item)).ToArray();
+            SaveRecent(remaining);
+            return new(IniPath, before, remaining, removed);
+        }
+    }
+    public bool RestoreRecent(RecentRemoval removal)
+    {
+        lock (gate)
+        {
+            if (!Paths.Same(IniPath, removal.SettingsPath)) throw new ArgumentException("The removal belongs to another settings file.", nameof(removal));
+            var current = Recent();
+            if (current.Count != removal.Remaining.Count || current.Where((item, index) =>
+                !Paths.Same(item.Path, removal.Remaining[index].Path) || item.Version != removal.Remaining[index].Version).Any()) return false;
+            SaveRecent(removal.Before);
+            return true;
+        }
+    }
+    private void SaveRecent(IReadOnlyList<RecentProject> recent)
+    {
+        Directory.CreateDirectory(DirectoryPath);
+        if (!File.Exists(IniPath)) File.WriteAllText(IniPath, "", Encoding.Unicode);
+        else EnsureUnicodeIni();
+        var original = File.ReadAllBytes(IniPath);
+        var temporary = IniPath + ".recent-" + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            File.WriteAllBytes(temporary, original);
+            for (var index = 0; index < 20; index++)
+                if (!WritePrivateProfileString("recent_projects", $"recent_{index}", index < recent.Count ? $"{recent[index].Version}|{recent[index].Path}" : null, temporary))
+                    throw new Win32Exception(Marshal.GetLastWin32Error());
+            WritePrivateProfileString(null!, null!, null, temporary);
+            if (!File.ReadAllBytes(IniPath).SequenceEqual(original)) throw new IOException("Settings changed while saving recent projects. Please retry.");
+            ReplaceFile(temporary, IniPath);
+            WritePrivateProfileString(null!, null!, null, IniPath);
+        }
+        finally
+        {
+            if (File.Exists(temporary)) File.Delete(temporary);
+        }
     }
     public ProjectBinding Binding(string path)
     {
