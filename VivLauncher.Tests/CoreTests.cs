@@ -166,12 +166,40 @@ public sealed class CoreTests : IDisposable
         var start = LaunchService.BuildStartInfo(installation, project, new(true, false, "-tclargs \"hello world\" \"quoted\\\"value\" \"\" \"C:\\with space\\\\\""), true);
         var expected = new[] { installation.BatchPath, "-nolog", "-tclargs", "hello world", "quoted\"value", "", @"C:\with space\", project };
 #if NET48
+        Assert.StartsWith("\"" + installation.BatchPath + "\" -nolog -tclargs ", start.Arguments);
         Assert.Equal(expected, LaunchService.ParseArguments(start.Arguments));
 #else
         Assert.Equal(expected, start.ArgumentList);
 #endif
         Assert.Equal(directory, start.WorkingDirectory);
         Assert.False(start.UseShellExecute);
+    }
+    [Fact]
+    public void WrapperArgumentsOmitNeedlessQuotesForVvgl()
+    {
+        var installation = new Installation(@"C:\Xilinx\Vivado\2024.2", "2024.2", true);
+        var project = @"C:\projects\plain.xpr";
+        var start = LaunchService.BuildStartInfo(installation, project, new(true, true, ""), true);
+        var expected = new[] { installation.BatchPath, "-nolog", "-nojournal", project };
+#if NET48
+        Assert.Equal(@"C:\Xilinx\Vivado\2024.2\bin\vivado.bat -nolog -nojournal C:\projects\plain.xpr", start.Arguments);
+        Assert.Equal(expected, LaunchService.ParseArguments(start.Arguments));
+#else
+        Assert.Equal(expected, start.ArgumentList);
+#endif
+        Assert.Equal(Path.Combine(installation.Path, "bin", "unwrapped", "win64.o", "vvgl.exe"), start.FileName);
+    }
+    [Theory]
+    [InlineData("")]
+    [InlineData("plain")]
+    [InlineData("with space")]
+    [InlineData("quote\"inside")]
+    [InlineData("trailing\\")]
+    [InlineData(@"C:\with space\")]
+    [InlineData("设计 & test!%.xpr")]
+    public void FormatCommandLineRoundTripsEveryArgument(string argument)
+    {
+        Assert.Equal(new[] { argument }, LaunchService.ParseArguments(LaunchService.FormatCommandLine([argument])));
     }
     [Fact]
     public void BatchFallbackPassesMetacharactersAsData()
