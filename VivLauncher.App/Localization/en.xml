@@ -18,6 +18,15 @@
   <string name="Cancel">Cancel</string>
   <string name="ChooseProject">Select a project to pick up where you left off.</string>
   <string name="ChooseVersion">Choose an available version…</string>
+  <string name="CleanRestoreFailed">History changed; the cleanup cannot be undone</string>
+  <string name="CleanRestored">Restored the last cleaned records</string>
+  <string name="CleanUnavailable">Clean unavailable paths ({0})</string>
+  <string name="CleanUnavailableBody">Removes {0} recent project records whose files are missing:&#10;{1}&#10;&#10;No project files are deleted; bindings and installations stay unchanged.</string>
+  <string name="CleanUnavailableDone">Removed {0} unavailable paths</string>
+  <string name="CleanUnavailableMore">…and {0} more</string>
+  <string name="CleanUnavailableNone">No unavailable paths to clean</string>
+  <string name="CleanUnavailableSettings">Clean unavailable paths</string>
+  <string name="CleanUnavailableTitle">Remove unavailable project paths?</string>
   <string name="Clear">Clear recent projects</string>
   <string name="ClearBody">Only history is cleared. Project files and bindings are kept.</string>
   <string name="ClearTitle">Clear recent projects?</string>
@@ -75,6 +84,7 @@
   <string name="Recent">Recent projects</string>
   <string name="RemoveBody">Vivado {0}&#10;{1}&#10;&#10;{2} project bindings and {3} recent entries using this version. Removing the record hides the installation and keeps project files, bindings, and history.</string>
   <string name="RemoveInstall">Remove record</string>
+  <string name="RemoveProjectTitle">Remove this unavailable project record?</string>
   <string name="RemoveTitle">Remove unavailable installation record?</string>
   <string name="Saved">Saved</string>
   <string name="SaveFailed">Process created, but recent history could not be saved. Do not launch again.</string>
@@ -90,6 +100,7 @@
   <string name="UnavailableHistory">Version unavailable</string>
   <string name="UnavailableProject">Path unavailable</string>
   <string name="Unbind">Bound · click to unbind</string>
+  <string name="UndoClean">Undo cleanup</string>
   <string name="UndoRemoval">Undo last removal</string>
   <string name="VersionRequired">Choose an available Vivado installation</string>
   <string name="ViewLog">View log</string>

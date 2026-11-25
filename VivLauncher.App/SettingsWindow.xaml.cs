@@ -23,6 +23,13 @@ public partial class SettingsWindow : Window
         try { await model.ClearRecentCommand.ExecuteAsync(null); }
         finally { model.Confirm = confirm; }
     }
+    private async void CleanUnavailableClick(object sender, RoutedEventArgs args)
+    {
+        var confirm = model.Confirm;
+        model.Confirm = (title, body) => Task.FromResult(Dialogs.Confirm(this, model, title, body));
+        try { await model.CleanUnavailableRecentCommand.ExecuteAsync(null); }
+        finally { model.Confirm = confirm; }
+    }
     private void AssociateClick(object sender, RoutedEventArgs args)
     {
         if (!Dialogs.Confirm(this, model, model.Text["AssociateTitle"], model.Text["AssociateBody"])) return;

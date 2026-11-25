@@ -18,6 +18,15 @@
   <string name="Cancel">取消</string>
   <string name="ChooseProject">选择一个工程，准备继续设计。</string>
   <string name="ChooseVersion">选择可用版本…</string>
+  <string name="CleanRestoreFailed">历史记录已变化，无法撤销清理</string>
+  <string name="CleanRestored">已恢复上次清理的记录</string>
+  <string name="CleanUnavailable">清理失效路径（{0}）</string>
+  <string name="CleanUnavailableBody">将移除 {0} 条已不存在的最近工程记录：&#10;{1}&#10;&#10;不会删除任何工程文件，绑定和安装记录保持不变。</string>
+  <string name="CleanUnavailableDone">已清理 {0} 条失效路径</string>
+  <string name="CleanUnavailableMore">…另有 {0} 条</string>
+  <string name="CleanUnavailableNone">没有可清理的失效路径</string>
+  <string name="CleanUnavailableSettings">清理失效路径</string>
+  <string name="CleanUnavailableTitle">清理失效的工程路径？</string>
   <string name="Clear">清空最近工程</string>
   <string name="ClearBody">只清除历史记录，不删除工程文件和版本绑定。</string>
   <string name="ClearTitle">清空最近工程？</string>
@@ -75,6 +84,7 @@
   <string name="Recent">最近工程</string>
   <string name="RemoveBody">Vivado {0}&#10;{1}&#10;&#10;{2} 个工程绑定到此安装，{3} 条最近记录使用过此版本。移除仅隐藏安装记录，工程文件、绑定和历史记录都会保留。</string>
   <string name="RemoveInstall">移除记录</string>
+  <string name="RemoveProjectTitle">移除这条失效工程记录？</string>
   <string name="RemoveTitle">移除失效的安装记录？</string>
   <string name="Saved">已保存</string>
   <string name="SaveFailed">进程已创建，但最近工程未保存。请勿重复启动。</string>
@@ -87,9 +97,10 @@
   <string name="System">跟随系统</string>
   <string name="Unavailable">失效 · 不可选择</string>
   <string name="UnavailableBinding">绑定失效</string>
-  <string name="UnavailableHistory">版本失效</string>
+  <string name="UnavailableHistory">上次版本不可用</string>
   <string name="UnavailableProject">路径失效</string>
   <string name="Unbind">已绑定 · 点击解除</string>
+  <string name="UndoClean">撤销清理</string>
   <string name="UndoRemoval">撤销上次移除</string>
   <string name="VersionRequired">请选择可用的 Vivado 版本</string>
   <string name="ViewLog">查看日志</string>

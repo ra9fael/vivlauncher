@@ -68,6 +68,21 @@ function Find-Window($title) {
         Start-Sleep -Milliseconds 150
     }
 }
+function Find-Dialog($exclude) {
+    $desktop = [Windows.Automation.AutomationElement]::RootElement
+    $processCondition = [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ProcessIdProperty, $process.Id)
+    $windowCondition = [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty, [Windows.Automation.ControlType]::Window)
+    for ($attempt = 0; $attempt -lt 30; $attempt++) {
+        foreach ($window in $desktop.FindAll([Windows.Automation.TreeScope]::Children, $processCondition)) {
+            if ($window.Current.ControlType -ne [Windows.Automation.ControlType]::Window) { continue }
+            if ($window.Current.Name -eq $exclude) { continue }
+            if (Find-Id $window 'DialogConfirm') { return $window }
+        }
+        $nested = $root.FindFirst([Windows.Automation.TreeScope]::Descendants, $windowCondition)
+        if ($nested -and (Find-Id $nested 'DialogConfirm')) { return $nested }
+        Start-Sleep -Milliseconds 150
+    }
+}
 function Invoke-Button($element) { $element.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke(); Start-Sleep -Milliseconds 180 }
 function Set-Text($element, $text) { $element.GetCurrentPattern([Windows.Automation.ValuePattern]::Pattern).SetValue($text); Start-Sleep -Milliseconds 200 }
 function Capture($window, $name) {
@@ -95,6 +110,22 @@ try {
     Assert-True ($null -ne $root) 'Native WPF window opens'
     [WindowCapture]::ShowWindow([IntPtr]$root.Current.NativeWindowHandle, 5) | Out-Null
     Start-Sleep -Milliseconds 1000
+    $historyItems = (Find-Id $root 'Projects').FindAll([Windows.Automation.TreeScope]::Children, [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty, [Windows.Automation.ControlType]::ListItem)).Count
+    $clean = Find-Id $root 'CleanUnavailable'
+    Assert-True ($null -ne $clean) 'Cleanup entry appears while a recent project is missing'
+    Invoke-Button $clean
+    $cleanConfirm = Find-Dialog $root.Current.Name
+    Assert-True ($null -ne $cleanConfirm) 'Cleanup asks for confirmation'
+    Capture $cleanConfirm '10-native-clean-confirmation.png'
+    Invoke-Button (Find-Id $cleanConfirm 'DialogConfirm')
+    Start-Sleep -Milliseconds 400
+    $cleanedItems = (Find-Id $root 'Projects').FindAll([Windows.Automation.TreeScope]::Children, [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty, [Windows.Automation.ControlType]::ListItem)).Count
+    Assert-True ($cleanedItems -eq $historyItems - 1) "Cleanup removes only the missing record ($historyItems to $cleanedItems)"
+    Assert-True ($null -eq (Find-Id $root 'CleanUnavailable')) 'Cleanup entry hides when nothing is left to clean'
+    Invoke-Button (Find-Id $root 'UndoCleanRecent')
+    Start-Sleep -Milliseconds 400
+    $restoredItems = (Find-Id $root 'Projects').FindAll([Windows.Automation.TreeScope]::Children, [Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty, [Windows.Automation.ControlType]::ListItem)).Count
+    Assert-True ($restoredItems -eq $historyItems) 'Undo restores the cleaned record'
     $search = Find-Id $root 'Search'
     $launch = Find-Id $root 'Launch'
     $toolbarLanguage = Find-Id $root 'ToolbarLanguage'
@@ -146,9 +177,9 @@ try {
     Assert-True (-not $launch.Current.IsEnabled) 'Unavailable pasted project cannot launch'
     Assert-True ((Find-Id $root 'ProjectIssues').Current.Name -eq '路径失效') 'Path warning uses the shared details area'
     Set-Text $search 'pynq_base_zu15'
-    Assert-True ((Find-Id $root 'ProjectIssues').Current.Name -eq '版本失效') 'Version warning uses the shared details area'
+    Assert-True ((Find-Id $root 'ProjectIssues').Current.Name -eq '上次版本不可用') 'Version warning uses the shared details area'
     Set-Text $search 'long directory'
-    Assert-True ((Find-Id $root 'ProjectIssues').Current.Name -eq '路径失效, 版本失效') 'Simultaneous warnings stack in the same details area'
+    Assert-True ((Find-Id $root 'ProjectIssues').Current.Name -eq '路径失效, 上次版本不可用') 'Simultaneous warnings stack in the same details area'
     Set-Text $search ''
     $picker = Find-Id $root 'VersionPicker'
     $picker.GetCurrentPattern([Windows.Automation.ExpandCollapsePattern]::Pattern).Expand()

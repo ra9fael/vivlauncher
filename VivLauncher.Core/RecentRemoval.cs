@@ -3,7 +3,7 @@ namespace VivLauncher.Core;
 public sealed class RecentRemoval
 {
     internal string SettingsPath { get; }
-    internal IReadOnlyList<RecentProject> Before { get; }
+    public IReadOnlyList<RecentProject> Before { get; }
     public IReadOnlyList<RecentProject> Remaining { get; }
     public IReadOnlyList<RecentProject> Removed { get; }
 

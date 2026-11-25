@@ -22,6 +22,7 @@ public partial class MainViewModel : ObservableObject
     private bool processCreated;
     private bool resolvingProject;
     private string? lastRemovedPath;
+    private RecentRemoval? recentRemoval;
     private readonly bool isolated;
     [ObservableProperty] private string query = "";
     [ObservableProperty] private ProjectRow? selectedProject;
@@ -55,6 +56,10 @@ public partial class MainViewModel : ObservableObject
     public bool IsEmpty => Projects.Count == 0;
     public bool IsIdle => !Scanning && !Launching;
     public bool CanUndoRemoval => lastRemovedPath is not null;
+    public int UnavailableCount => history.Count(item => !item.Available);
+    public bool CanCleanUnavailable => UnavailableCount > 0 && IsIdle;
+    public bool CanUndoRecentRemoval => recentRemoval is not null && IsIdle;
+    public string CleanLabel => Text.Format("CleanUnavailable", UnavailableCount);
     public string EmptyTitle => Text[Query.Length == 0 ? "Empty" : "NoResults"];
     public string EmptyHint => Text[Query.Length == 0 ? "EmptyHint" : "NoResultsHint"];
     public string ProjectCount => Text.Format(Query.Length == 0 ? "Count" : "Matches", Projects.Count);
@@ -283,6 +288,60 @@ public partial class MainViewModel : ObservableObject
         catch (Exception error) { Report(error); }
     }
     [RelayCommand]
+    private async Task CleanUnavailableRecentAsync()
+    {
+        if (!CanCleanUnavailable) return;
+        var paths = history.Where(item => !item.Available).Select(item => item.Path).ToArray();
+        if (paths.Length == 0) { Notice = Text["CleanUnavailableNone"]; return; }
+        var preview = string.Join("\n", paths.Take(3));
+        if (paths.Length > 3) preview += "\n" + Text.Format("CleanUnavailableMore", paths.Length - 3);
+        if (!await Confirm(Text["CleanUnavailableTitle"], Text.Format("CleanUnavailableBody", paths.Length, preview))) return;
+        RemoveUnavailable(paths);
+    }
+    [RelayCommand]
+    private async Task RemoveUnavailableRecentAsync(ProjectRow? item)
+    {
+        if (item is null || item.Available || !IsIdle) return;
+        if (!await Confirm(Text["RemoveProjectTitle"], Text.Format("CleanUnavailableBody", 1, item.Path))) return;
+        RemoveUnavailable([item.Path]);
+    }
+    [RelayCommand]
+    private void UndoRecentRemoval()
+    {
+        if (!CanUndoRecentRemoval || recentRemoval is null) return;
+        var removal = recentRemoval;
+        try
+        {
+            recentRemoval = null;
+            if (!Store.RestoreRecent(removal)) { Notice = Text["CleanRestoreFailed"]; Refresh(); return; }
+            history = removal.Before.Select(item => new ProjectRow(item, Store.Binding(item.Path), File.Exists(item.Path))).ToList();
+            Query = "";
+            ApplyFilter();
+            Notice = Text["CleanRestored"];
+        }
+        catch (Exception error) { Report(error); }
+    }
+    private void RemoveUnavailable(IReadOnlyList<string> paths)
+    {
+        try
+        {
+            var removal = Store.RemoveUnavailableRecent(paths);
+            if (removal is null) { Notice = Text["CleanUnavailableNone"]; Revalidate(); return; }
+            recentRemoval = removal;
+            var removed = removal.Removed.Select(item => item.Path).ToArray();
+            history.RemoveAll(item => removed.Any(path => Paths.Same(path, item.Path)));
+            Query = "";
+            ApplyFilter();
+            Notice = Text.Format("CleanUnavailableDone", removed.Length);
+        }
+        catch (Exception error) { Report(error); }
+    }
+    private void Revalidate()
+    {
+        foreach (var item in history) item.Available = File.Exists(item.Path);
+        ApplyFilter();
+    }
+    [RelayCommand]
     private async Task LaunchAsync()
     {
         if (!CanLaunch || SelectedProject is null || SelectedInstall is null) return;
@@ -331,6 +390,10 @@ public partial class MainViewModel : ObservableObject
     private void Refresh()
     {
         OnPropertyChanged(nameof(CanUndoRemoval));
+        OnPropertyChanged(nameof(UnavailableCount));
+        OnPropertyChanged(nameof(CanCleanUnavailable));
+        OnPropertyChanged(nameof(CanUndoRecentRemoval));
+        OnPropertyChanged(nameof(CleanLabel));
         foreach (var name in new[] { nameof(CanLaunch), nameof(CanBind), nameof(HasProject), nameof(IsEmpty), nameof(IsIdle), nameof(EmptyTitle), nameof(EmptyHint), nameof(ProjectCount), nameof(InstallCount), nameof(LastUsed), nameof(BindLabel), nameof(SelectionWarning), nameof(SelectionSource), nameof(Status), nameof(StatusHint), nameof(StatusWarning) }) OnPropertyChanged(name);
     }
 }

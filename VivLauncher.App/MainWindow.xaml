@@ -45,7 +45,7 @@
             <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,1,1,0">
                 <Grid>
                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                    <DockPanel Margin="24,20,18,12"><TextBlock Text="{Binding ProjectCount}" Style="{StaticResource Muted}" DockPanel.Dock="Right" /><TextBlock Text="{Binding Text[Recent]}" FontWeight="SemiBold" /></DockPanel>
+                    <DockPanel Margin="24,20,18,12"><TextBlock Text="{Binding ProjectCount}" Style="{StaticResource Muted}" DockPanel.Dock="Right" /><Button Content="{Binding CleanLabel}" Command="{Binding CleanUnavailableRecentCommand}" Visibility="{Binding CanCleanUnavailable, Converter={StaticResource BoolVisibility}}" Style="{StaticResource LinkButton}" DockPanel.Dock="Right" Margin="0,0,12,0" FontSize="12" AutomationProperties.AutomationId="CleanUnavailable" /><TextBlock Text="{Binding Text[Recent]}" FontWeight="SemiBold" /></DockPanel>
                     <ListBox x:Name="ProjectList" Grid.Row="1" ItemsSource="{Binding Projects}" SelectedItem="{Binding SelectedProject}" BorderThickness="0" Background="Transparent" Margin="12,0,10,0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto" MouseDoubleClick="OnProjectDoubleClick" PreviewKeyDown="OnListKeyDown" AutomationProperties.AutomationId="Projects">
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
@@ -78,6 +78,7 @@
                                     <ItemsControl ItemsSource="{Binding Issues}" HorizontalAlignment="Right">
                                         <ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label, StringFormat=⚠ {0}}" TextAlignment="Right" FontSize="11" Foreground="{DynamicResource WarningInk}" Margin="0,4,0,0" /></DataTemplate></ItemsControl.ItemTemplate>
                                     </ItemsControl>
+                                    <Button Content="{Binding DataContext.Text[RemoveInstall], RelativeSource={RelativeSource AncestorType=Window}}" Command="{Binding DataContext.RemoveUnavailableRecentCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" IsEnabled="{Binding DataContext.IsIdle, RelativeSource={RelativeSource AncestorType=Window}}" Visibility="{Binding Available, Converter={StaticResource InverseVisibility}}" Style="{StaticResource LinkButton}" FontSize="11" HorizontalAlignment="Right" Margin="0,4,0,0" ToolTip="{Binding Path}" AutomationProperties.AutomationId="RemoveUnavailableProject" />
                                 </StackPanel>
                             </Grid>
                         </DataTemplate></ListBox.ItemTemplate>
@@ -150,7 +151,7 @@
                     </TextBlock>
                     <TextBlock Text="{Binding StatusHint}" Style="{StaticResource Muted}" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
-                <Button Grid.Column="1" Content="{Binding Text[ViewLog]}" Style="{StaticResource LinkButton}" Click="LogClick" VerticalAlignment="Center" Margin="0,0,16,0" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0"><Button Content="{Binding Text[UndoClean]}" Command="{Binding UndoRecentRemovalCommand}" IsEnabled="{Binding IsIdle}" Visibility="{Binding CanUndoRecentRemoval, Converter={StaticResource BoolVisibility}}" Style="{StaticResource LinkButton}" Margin="0,0,16,0" AutomationProperties.AutomationId="UndoCleanRecent" /><Button Content="{Binding Text[ViewLog]}" Style="{StaticResource LinkButton}" Click="LogClick" /></StackPanel>
                 <Button Grid.Column="2" Content="{Binding Text[Open]}" Command="{Binding LaunchCommand}" IsEnabled="{Binding CanLaunch}" Style="{StaticResource Primary}" Width="144" MinHeight="42" VerticalAlignment="Center" AutomationProperties.AutomationId="Launch" />
             </Grid>
         </Border>

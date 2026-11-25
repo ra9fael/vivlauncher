@@ -1,5 +1,17 @@
 # WPF implementation verification
 
+## 2.2.0 launch arguments and recent-project cleanup
+
+On 2026-11-26, both Release targets built with zero warnings or errors and passed 1,380 tests each. The .NET Framework edition now builds the same `vvgl.exe` command line as the .NET 10 edition, quoting an argument only when it is empty or contains a space, tab or quote. New tests assert that a space-free batch path reaches the wrapper without quotes, and that every quoted form round-trips through `CommandLineToArgvW`.
+
+Recent-project cleanup is covered at both layers. Core tests remove missing records through an atomic INI rewrite that keeps other sections, restores them as a snapshot, and rejects undo after an external change. Both published EXEs then passed 44 native UI checks, including the new flow:
+
+- The **Clean unavailable paths (N)** entry appears only while a recent project is missing, confirms first, removes just the missing record, hides when nothing is left, and **Undo cleanup** restores it.
+- Per-row **Remove record** opens its own confirmation and removes exactly one record.
+- The renamed historical label reads **上次版本不可用** / **Last version unavailable** beside the path and binding warnings.
+
+Screenshots are regenerated in `artifacts/qa/`, including `10-native-clean-confirmation.png`.
+
 ## Dual-edition build
 
 On 2026-11-21, both Release targets built with zero warnings or errors. Each target passed 1,366 tests, including all 1,354 fzf parity cases and the installation removal, undo, and same-path recovery test.
