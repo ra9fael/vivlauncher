@@ -39,11 +39,11 @@ const translations = {
     logSimulation: "[演示记录] 未创建真实进程", logSuccess: "结果：已模拟创建进程", logFailure: "结果：创建进程失败（模拟）\nWindows 错误：2 / 找不到指定文件",
     logProject: "工程", logInstall: "安装", logArgs: "参数", logDirectory: "工作目录", noMatchStatus: "选择或浏览一个工程", scanManaged: "正在扫描示例安装…",
     browsingPath: "使用输入的工程路径", available: "可用", countInstalls: "{count} 个安装", logNoneArgs: "无",
-    rankedCount: "{count} 个匹配 · 按相关度", unavailableVersion: "版本失效", unavailableBinding: "绑定失效", unavailableHistory: "上次版本失效",
+    rankedCount: "{count} 个匹配 · 按相关度", unavailableVersion: "版本失效", unavailableBinding: "绑定失效", unavailableHistory: "上次版本不可用",
     unavailableInstall: "安装失效", unavailableInstallHint: "原安装路径不可用，已保留记录；请选择其他可用安装。",
     unavailableVersionOption: "失效 · 不可选择", availableCount: "{count} 个可用安装", bindingLabel: "绑定版本 {version}", historyUnavailableDescription: "上次使用的版本 {version} 已不可用",
-    bindingUnavailableDescription: "绑定版本 {version} 已失效", projectUnavailableShort: "工程路径失效",
-    removeRecord: "移除记录", removeRecordTitle: "移除 Vivado {version} 的记录？",
+    bindingUnavailableDescription: "绑定版本 {version} 已失效",
+    removeRecord: "移除记录", removeRecordTitle: "移除 Vivado {version} 的记录？", removeProjectTitle: "移除这条失效工程记录？",
     removeRecordBody: "{path}\n\n只从安装管理和版本列表移除，不删除磁盘文件。\n\n{bindings} 个工程绑定此安装，{history} 个工程曾使用此版本。工程记录和绑定保留，失效提示仍会显示。{defaultNote}\n\n可以撤销移除；同一路径恢复可用后也可重新发现。",
     removeDefaultNote: "\n此失效安装还是默认版本，移除后会清除该默认设置。",
     recordRemoved: "已移除 Vivado {version} 的失效记录。工程记录与绑定保留。",
@@ -53,7 +53,12 @@ const translations = {
     projectPathHelp: "检查磁盘或共享目录是否已连接，或浏览其他工程。此工程仍保留在最近列表中。",
     pathUnavailableLabel: "路径失效", versionUnavailableLabel: "版本失效",
     bindingUnavailableHelp: "绑定的 Vivado {version} 不可用，请选择可用的替代版本。",
-    versionUnavailableHelp: "上次使用的 Vivado {version} 不可用，本次可选择其他可用版本。"
+    versionUnavailableHelp: "上次使用的 Vivado {version} 不可用，本次可选择其他可用版本。",
+    cleanUnavailable: "清理失效路径（{count}）", cleanUnavailableSettings: "清理失效路径", cleanUnavailableTitle: "清理失效的工程路径？",
+    cleanUnavailableBody: "将移除 {count} 条已不存在的最近工程记录：\n{list}{more}\n\n不会删除任何工程文件，绑定和安装记录保持不变。",
+    cleanUnavailableMore: "\n…另有 {count} 条", cleanNow: "清理", cleanUnavailableDone: "已清理 {count} 条失效路径",
+    cleanNone: "没有可清理的失效路径", undoClean: "撤销清理", cleanRestored: "已恢复上次清理的工程记录",
+    scenarioStalePaths: "清理失效路径", cleanHint: "清理只针对本页内存中的失效工程，不读写本机文件。"
   },
   en: {
     previewTitle: "Vivado Launcher / Design preview", language: "Language", theme: "Appearance", systemTheme: "System", lightTheme: "Light", darkTheme: "Dark",
@@ -96,8 +101,8 @@ const translations = {
     rankedCount: "{count} matches · Ranked", unavailableVersion: "Version unavailable", unavailableBinding: "Binding unavailable", unavailableHistory: "Last version unavailable",
     unavailableInstall: "Unavailable", unavailableInstallHint: "The original installation path is unavailable. Its record is kept; choose an available installation.",
     unavailableVersionOption: "Unavailable · Cannot select", availableCount: "{count} available installations", bindingLabel: "Bound version {version}", historyUnavailableDescription: "Last used version {version} is unavailable",
-    bindingUnavailableDescription: "Bound version {version} is unavailable", projectUnavailableShort: "Project unavailable",
-    removeRecord: "Remove record", removeRecordTitle: "Remove the Vivado {version} record?",
+    bindingUnavailableDescription: "Bound version {version} is unavailable",
+    removeRecord: "Remove record", removeRecordTitle: "Remove the Vivado {version} record?", removeProjectTitle: "Remove this unavailable project record?",
     removeRecordBody: "{path}\n\nRemove it from installation management and the version picker. No files are deleted.\n\n{bindings} projects are bound to this installation; {history} projects last used this version. Project records and bindings stay intact, including unavailable warnings.{defaultNote}\n\nYou can undo removal. The same path can be rediscovered once it becomes available.",
     removeDefaultNote: "\nThis is also the default installation; removing it clears that default.",
     recordRemoved: "Removed the unavailable Vivado {version} record. Project records and bindings are kept.",
@@ -107,7 +112,12 @@ const translations = {
     projectPathHelp: "Check the drive or network share, or browse for another project. This project stays in the recent list.",
     pathUnavailableLabel: "Path unavailable", versionUnavailableLabel: "Version unavailable",
     bindingUnavailableHelp: "Bound Vivado {version} is unavailable. Choose an available replacement.",
-    versionUnavailableHelp: "Last used Vivado {version} is unavailable. You can choose another available version."
+    versionUnavailableHelp: "Last used Vivado {version} is unavailable. You can choose another available version.",
+    cleanUnavailable: "Clean unavailable paths ({count})", cleanUnavailableSettings: "Clean unavailable paths", cleanUnavailableTitle: "Remove unavailable project paths?",
+    cleanUnavailableBody: "Removes {count} recent project records whose files are missing:\n{list}{more}\n\nNo project files are deleted; bindings and installations stay unchanged.",
+    cleanUnavailableMore: "\n…and {count} more", cleanNow: "Clean", cleanUnavailableDone: "Removed {count} unavailable paths",
+    cleanNone: "No unavailable paths to clean", undoClean: "Undo cleanup", cleanRestored: "Restored the last cleaned project records",
+    scenarioStalePaths: "Clean up stale paths", cleanHint: "Cleanup only affects missing projects in this page's memory. No local files are read or changed."
   }
 };
 
@@ -137,7 +147,7 @@ const baseProjects = [
 const state = {
   projects: [], installs: [], selectedProject: null, selectedInstall: null, defaultInstall: "xilinx-2024", source: "bindingSource",
   query: "", scenario: "normal", scanning: false, launching: false, status: null, log: null, scanTimer: null, launchTimer: null,
-  noLog: true, noJournal: true, extraArgs: "", confirmAction: null, searchTimer: null, removedInstalls: []
+  noLog: true, noJournal: true, extraArgs: "", confirmAction: null, searchTimer: null, removedInstalls: [], cleanedBatches: []
 };
 
 function translate(key, values = {}) {
@@ -307,20 +317,23 @@ function renderProjects() {
     const description = make("span", "project-row-description");
     const parent = parentPath(project.path);
     description.append(highlightedText("project-row-title", project.name, results[index].positions, Array.from(parent.normalize()).length + 1), highlightedText("project-row-path", parent, results[index].positions));
-    if (!project.available && !unifiedWarnings) description.append(make("span", "project-path-warning", translate("projectUnavailableShort")));
-    const version = make("span", `project-row-version${versionState.unavailable ? " unavailable-version" : ""}${unifiedWarnings && hasWarning ? " warning-state" : ""}`);
+    const version = make("span", `project-row-version${hasWarning ? (unifiedWarnings ? " warning-state" : " unavailable-version") : ""}`);
     const versionNumber = make("span", "version-number");
-    if (unifiedWarnings ? hasWarning : versionState.unavailable) versionNumber.append(icon("warning"));
+    if (hasWarning) versionNumber.append(icon("warning"));
     versionNumber.append(document.createTextNode(versionState.version));
     version.append(versionNumber);
-    if (unifiedWarnings) {
-      if (!project.available) version.append(make("span", "row-warning-label project-path-warning", translate("pathUnavailableLabel")));
-      if (versionState.unavailable) version.append(make("span", "row-warning-label version-warning-label", translate(project.bound ? "unavailableBinding" : "versionUnavailableLabel")));
-      if (!hasWarning && project.bound) version.append(icon("link"));
-    } else {
-      if (versionState.unavailable) version.append(make("span", "version-warning-label", translate(versionState.warning)));
-      else if (project.bound) version.append(icon("link"));
+    const appendLabel = (modifier, key, hint) => {
+      const label = make("span", `version-warning-label row-warning-label${modifier ? " " + modifier : ""}`, translate(key));
+      if (hint) label.title = hint;
+      version.append(label);
+    };
+    if (!project.available) appendLabel("project-path-warning", "pathUnavailableLabel");
+    if (versionState.unavailable) {
+      if (project.bound) appendLabel("binding-warning", "unavailableBinding");
+      else appendLabel("history-warning", unifiedWarnings ? "versionUnavailableLabel" : "unavailableHistory", translate("historyUnavailableDescription", { version: versionState.version }));
     }
+    if (!hasWarning && project.bound) version.append(icon("link"));
+    if (!project.available) version.append(makeRemoveButton(project));
     row.append(fileIcon, description, version);
     list.append(row);
     if (state.selectedProject?.id === project.id) list.setAttribute("aria-activedescendant", row.id);
@@ -515,7 +528,91 @@ function undoRemoveInstall() {
   Array.from(element("install-list").querySelectorAll("[data-remove-id]")).find(button => button.dataset.removeId === install.id)?.focus();
 }
 
-function render() { renderProjects(); renderDetails(); renderStatus(); renderInstalls(); }
+function render() { renderProjects(); renderDetails(); renderStatus(); renderInstalls(); renderCleanEntry(); }
+
+function unavailableProjects() { return state.projects.filter(project => !project.available); }
+
+function makeRemoveButton(project) {
+  const remove = make("button", "text-button row-remove", translate("removeRecord"));
+  remove.type = "button";
+  remove.dataset.removeId = project.id;
+  remove.disabled = state.scanning || state.launching;
+  remove.setAttribute("aria-label", `${translate("removeRecord")} ${project.path}`);
+  remove.addEventListener("click", event => { event.stopPropagation(); requestRemoveProject(project); });
+  remove.addEventListener("dblclick", event => event.stopPropagation());
+  return remove;
+}
+
+function renderCleanEntry() {
+  const count = unavailableProjects().length;
+  const idle = !state.scanning && !state.launching;
+  const button = element("clean-unavailable");
+  if (button) {
+    button.hidden = count === 0;
+    button.disabled = !idle;
+    text("clean-unavailable", "cleanUnavailable", { count });
+  }
+  const settings = element("clean-unavailable-settings");
+  if (settings) settings.disabled = count === 0 || !idle;
+  for (const remove of document.querySelectorAll("#project-list .row-remove")) remove.disabled = !idle;
+  const undo = element("undo-clean");
+  if (undo) {
+    undo.hidden = state.cleanedBatches.length === 0;
+    undo.disabled = !idle;
+    text("undo-clean", "undoClean");
+  }
+}
+
+function requestCleanUnavailable() {
+  if (state.scanning || state.launching) return;
+  const projects = unavailableProjects();
+  if (!projects.length) {
+    state.status = { key: "cleanNone", tone: "warning" };
+    renderStatus();
+    return;
+  }
+  const values = {
+    count: projects.length,
+    list: projects.slice(0, 3).map(project => project.path).join("\n"),
+    more: projects.length > 3 ? translate("cleanUnavailableMore", { count: projects.length - 3 }) : ""
+  };
+  confirmAction("cleanUnavailableTitle", "cleanUnavailableBody", "cleanNow", values, () => removeUnavailable(projects));
+}
+
+function requestRemoveProject(project) {
+  if (state.scanning || state.launching || project.available) return;
+  confirmAction("removeProjectTitle", "cleanUnavailableBody", "removeRecord", { count: 1, list: project.path, more: "" }, () => removeUnavailable([project]));
+}
+
+function removeUnavailable(projects) {
+  const batch = projects.filter(project => !project.available).map(project => ({ project, index: state.projects.indexOf(project) }));
+  if (!batch.length) return;
+  state.cleanedBatches.push(batch);
+  state.projects = state.projects.filter(project => !batch.some(record => record.project === project));
+  if (state.selectedProject && !state.selectedProject.available) {
+    state.selectedProject = state.projects[0] || null;
+    pickInstall();
+  }
+  state.status = { key: "cleanUnavailableDone", hint: "cleanHint", values: { count: batch.length } };
+  if (element("settings-dialog")?.open) messageAt("settings-status", "cleanUnavailableDone", { count: batch.length });
+  render();
+  element("undo-clean")?.focus();
+}
+
+function undoClean() {
+  if (state.scanning || state.launching || !state.cleanedBatches.length) return;
+  const batch = state.cleanedBatches.pop();
+  for (const record of batch.sort((first, second) => first.index - second.index))
+    state.projects.splice(Math.min(record.index, state.projects.length), 0, record.project);
+  if (!state.selectedProject) {
+    state.selectedProject = state.projects[0] || null;
+    pickInstall();
+  }
+  state.status = { key: "cleanRestored" };
+  if (element("settings-dialog")?.open) messageAt("settings-status", "cleanRestored");
+  render();
+  element("clean-unavailable")?.focus();
+}
 
 function resetScenario(scenario) {
   clearTimeout(state.scanTimer);
@@ -524,7 +621,7 @@ function resetScenario(scenario) {
   element("search-announcement").textContent = "";
   state.projects = baseProjects.map(project => ({ ...project }));
   state.installs = baseInstalls.map(install => ({ ...install }));
-  Object.assign(state, { selectedProject: state.projects[0], defaultInstall: "xilinx-2024", scenario, query: "", scanning: false, launching: false, status: null, log: null, noLog: true, noJournal: true, extraArgs: "", removedInstalls: [] });
+  Object.assign(state, { selectedProject: state.projects[0], defaultInstall: "xilinx-2024", scenario, query: "", scanning: false, launching: false, status: null, log: null, noLog: true, noJournal: true, extraArgs: "", removedInstalls: [], cleanedBatches: [] });
   element("search").value = "";
   element("no-log").checked = true;
   element("no-journal").checked = true;
@@ -545,6 +642,10 @@ function resetScenario(scenario) {
   }
   if (["missing-project", "missing-both"].includes(scenario)) state.selectedProject.available = false;
   if (scenario === "warning-comparison") state.projects[2].available = false;
+  if (scenario === "stale-paths") {
+    [1, 3, 5].forEach(index => { state.projects[index].available = false; });
+    state.installs.push({ id: "missing-2023", version: "2023.2", path: "D:\\EDA Tools\\Vivado\\2023.2", available: false });
+  }
   pickInstall();
   render();
   if (scenario === "scan") scan();
@@ -685,7 +786,7 @@ for (const id of ["language", "settings-language"]) element(id).addEventListener
 for (const id of ["theme", "settings-theme"]) element(id).addEventListener("change", () => { preferences.theme = element(id).value; applyPreferences(); });
 mediaTheme.addEventListener("change", () => { if (preferences.theme === "system") applyPreferences(); });
 element("manage-button").addEventListener("click", () => { renderInstalls(); element("manage-dialog").showModal(); });
-element("settings-button").addEventListener("click", () => { element("clear-recent").disabled = state.launching; element("settings-dialog").showModal(); });
+element("settings-button").addEventListener("click", () => { element("clear-recent").disabled = state.launching; renderCleanEntry(); element("settings-dialog").showModal(); });
 element("browse-button").addEventListener("click", showBrowse);
 element("empty-browse").addEventListener("click", showBrowse);
 element("launch-button").addEventListener("click", requestLaunch);
@@ -694,6 +795,9 @@ element("reset-button").addEventListener("click", () => resetScenario("normal"))
 element("scenario").addEventListener("change", () => resetScenario(element("scenario").value));
 element("add-path-button").addEventListener("click", () => { element("add-path-form").hidden = false; element("install-path").focus(); });
 element("undo-remove")?.addEventListener("click", undoRemoveInstall);
+element("clean-unavailable")?.addEventListener("click", requestCleanUnavailable);
+element("clean-unavailable-settings")?.addEventListener("click", requestCleanUnavailable);
+element("undo-clean")?.addEventListener("click", undoClean);
 element("add-path-form").addEventListener("submit", event => {
   event.preventDefault();
   const path = normalizePath(element("install-path").value).replace(/\\+$/, "");

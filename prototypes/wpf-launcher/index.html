@@ -56,7 +56,7 @@
 
     <div class="workspace">
       <section class="projects-pane">
-        <div class="section-heading"><h2 data-i18n="recent">最近工程</h2><span class="muted" id="project-count"></span></div>
+        <div class="section-heading"><h2 data-i18n="recent">最近工程</h2><span class="heading-tools"><button type="button" class="text-button" id="clean-unavailable" hidden></button><span class="muted" id="project-count"></span></span></div>
         <span id="search-announcement" class="sr-only" role="status"></span>
         <div class="project-list" id="project-list" role="listbox" tabindex="0" aria-label="最近工程" data-i18n-aria="recent"></div>
         <div class="empty-state" id="empty-state" hidden><svg class="icon"><use href="#icon-folder"/></svg><h3 id="empty-title"></h3><p id="empty-description"></p><button type="button" id="empty-browse" class="secondary-button" data-i18n="browseProject">浏览工程</button></div>
@@ -87,7 +87,7 @@
     </div>
 
     <footer class="app-footer">
-      <div class="footer-feedback"><div class="status-line"><span class="status-dot" id="status-dot"></span><span id="status" role="status"></span></div><p id="footer-hint" class="footer-hint"></p><button type="button" class="text-button" id="view-error" data-i18n="viewLog" hidden>查看日志</button></div>
+      <div class="footer-feedback"><div class="status-line"><span class="status-dot" id="status-dot"></span><span id="status" role="status"></span></div><p id="footer-hint" class="footer-hint"></p><button type="button" class="text-button" id="undo-clean" hidden></button><button type="button" class="text-button" id="view-error" data-i18n="viewLog" hidden>查看日志</button></div>
       <button type="button" class="primary-button launch-button" id="launch-button"><span id="launch-label" data-i18n="openProject">打开工程</span><svg class="icon"><use href="#icon-arrow"/></svg></button>
     </footer>
     <div class="drop-overlay" id="drop-overlay" hidden><svg class="icon"><use href="#icon-folder"/></svg><span data-i18n="dropRelease">松开以选择工程</span></div>
@@ -95,7 +95,7 @@
 
   <footer class="preview-footer">
     <div class="preview-note"><span class="preview-pill" data-i18n="prototype">交互原型</span><span data-i18n="simulationNote">所有扫描与启动均为演示，不操作本机文件。</span></div>
-    <div class="scenario-tools"><label for="scenario" data-i18n="scenario">演示场景</label><select id="scenario"><option value="normal" data-i18n="scenarioNormal">日常使用</option><option value="empty" data-i18n="scenarioEmpty">首次使用</option><option value="no-installs" data-i18n="scenarioNoInstalls">没有安装</option><option value="missing-binding" data-i18n="scenarioMissingBinding">绑定版本缺失</option><option value="missing-project" data-i18n="scenarioMissingProject">工程路径失效</option><option value="scan" data-i18n="scenarioScan">扫描中</option><option value="launch-error" data-i18n="scenarioLaunchError">启动失败</option></select><button type="button" class="text-button" id="reset-button" data-i18n="reset">重置</button></div>
+    <div class="scenario-tools"><label for="scenario" data-i18n="scenario">演示场景</label><select id="scenario"><option value="normal" data-i18n="scenarioNormal">日常使用</option><option value="empty" data-i18n="scenarioEmpty">首次使用</option><option value="no-installs" data-i18n="scenarioNoInstalls">没有安装</option><option value="missing-binding" data-i18n="scenarioMissingBinding">绑定版本缺失</option><option value="missing-project" data-i18n="scenarioMissingProject">工程路径失效</option><option value="stale-paths" data-i18n="scenarioStalePaths">清理失效路径</option><option value="scan" data-i18n="scenarioScan">扫描中</option><option value="launch-error" data-i18n="scenarioLaunchError">启动失败</option></select><button type="button" class="text-button" id="reset-button" data-i18n="reset">重置</button></div>
   </footer>
 
   <dialog id="manage-dialog" aria-labelledby="manage-title">
@@ -112,7 +112,7 @@
     <div class="settings-row"><div><label for="settings-language" data-i18n="language">语言</label><p data-i18n="languageHint">立即切换，保留当前输入。</p></div><select id="settings-language"><option value="zh-CN" lang="zh-CN">简体中文</option><option value="en" lang="en">English</option></select></div>
     <div class="settings-row"><div><label for="settings-theme" data-i18n="theme">外观</label><p data-i18n="themeHint">使用系统主题，或选择你习惯的外观。</p></div><select id="settings-theme"><option value="system" data-i18n="systemTheme">跟随系统</option><option value="light" data-i18n="lightTheme">浅色</option><option value="dark" data-i18n="darkTheme">深色</option></select></div>
     <h3 class="settings-heading" data-i18n="diagnostics">诊断与帮助</h3>
-    <div class="settings-actions"><button type="button" class="secondary-button" id="settings-log" data-i18n="viewLog">查看日志</button><button type="button" class="secondary-button" id="associate-button" data-i18n="associate">关联 .xpr</button><button type="button" class="secondary-button" id="clear-recent" data-i18n="clearRecent">清空最近工程</button></div>
+    <div class="settings-actions"><button type="button" class="secondary-button" id="settings-log" data-i18n="viewLog">查看日志</button><button type="button" class="secondary-button" id="associate-button" data-i18n="associate">关联 .xpr</button><button type="button" class="secondary-button" id="clean-unavailable-settings" data-i18n="cleanUnavailableSettings">清理失效路径</button><button type="button" class="secondary-button" id="clear-recent" data-i18n="clearRecent">清空最近工程</button></div>
     <p id="settings-status" class="dialog-status" role="status"></p>
     <details class="help-details"><summary data-i18n="shortcuts">快捷键与使用说明</summary><dl class="shortcut-list"><dt><kbd>Ctrl F</kbd></dt><dd data-i18n="shortcutSearch">搜索最近工程</dd><dt><kbd>Ctrl O</kbd></dt><dd data-i18n="browseProject">浏览工程</dd><dt><kbd>↑ ↓</kbd></dt><dd data-i18n="shortcutSelect">选择工程</dd><dt><kbd>Enter</kbd></dt><dd data-i18n="shortcutLaunch">在搜索框或列表中打开所选工程</dd><dt><kbd>Esc</kbd></dt><dd data-i18n="shortcutClose">关闭对话框</dd></dl><p class="field-hint" data-i18n="previewHelp">这是界面演示。所有变更仅保留在当前页面，刷新后恢复示例数据。</p></details>
   </dialog>

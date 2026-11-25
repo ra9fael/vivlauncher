@@ -139,7 +139,7 @@ async function verify() {
       const historyRow = page.locator('.project-row[data-project-id="blm"]');
       assert.match(await boundRow.getAttribute("class"), /has-unavailable-version/);
       assert.match(await boundRow.locator(".unavailable-version").innerText(), /2023\.2\s*绑定失效/);
-      assert.match(await historyRow.locator(".unavailable-version").innerText(), /2023\.2\s*上次版本失效/);
+      assert.match(await historyRow.locator(".unavailable-version").innerText(), /2023\.2\s*上次版本不可用/);
       assert.match(await boundRow.getAttribute("aria-label"), /绑定版本 2023\.2 已失效/);
       assert.equal(await page.locator('#version option[value="missing-2023"]').isDisabled(), true);
       assert.match(await page.locator('#version option[value="missing-2023"]').innerText(), /失效/);
