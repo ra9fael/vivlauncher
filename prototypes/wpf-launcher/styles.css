@@ -125,7 +125,7 @@ kbd { font-family: inherit; font-size: 11px; color: var(--muted); background: va
 .project-row.has-unavailable-version[aria-selected="true"] { background: var(--selected); }
 .unavailable-version { color: var(--warning); background: var(--warning-bg); padding: 4px 6px; border-radius: 4px; }
 .version-warning-label { display: block; font-size: 10px; line-height: 1.5; margin-top: 2px; color: var(--warning); }
-.project-row-version .row-remove { display: inline-block; font-size: 10px; min-height: 20px; margin-top: 4px; }
+.project-row-version .row-remove { display: inline-block; font-size: 10px; min-height: 20px; margin-top: 4px; padding-right: 6px; }
 mark.search-match { color: var(--accent); background: var(--selected); font-weight: 700; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
 .project-row[aria-selected="true"] mark.search-match { background: var(--panel); }
 .drop-hint { display: flex; justify-content: center; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; margin-top: auto; padding-top: 18px; padding-bottom: 3px; }
