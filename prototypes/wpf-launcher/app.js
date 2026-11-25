@@ -317,21 +317,23 @@ function renderProjects() {
     const description = make("span", "project-row-description");
     const parent = parentPath(project.path);
     description.append(highlightedText("project-row-title", project.name, results[index].positions, Array.from(parent.normalize()).length + 1), highlightedText("project-row-path", parent, results[index].positions));
-    const version = make("span", `project-row-version${hasWarning ? (unifiedWarnings ? " warning-state" : " unavailable-version") : ""}`);
+    const version = make("span", "project-row-version");
+    const chip = make("span", `version-chip${hasWarning ? (unifiedWarnings ? " warning-state" : " unavailable-version") : ""}`);
     const versionNumber = make("span", "version-number");
     if (hasWarning) versionNumber.append(icon("warning"));
     versionNumber.append(document.createTextNode(versionState.version));
-    version.append(versionNumber);
+    chip.append(versionNumber);
     const appendLabel = (modifier, key, hint) => {
       const label = make("span", `version-warning-label row-warning-label${modifier ? " " + modifier : ""}`, translate(key));
       if (hint) label.title = hint;
-      version.append(label);
+      chip.append(label);
     };
     if (!project.available) appendLabel("project-path-warning", "pathUnavailableLabel");
     if (versionState.unavailable) {
       if (project.bound) appendLabel("binding-warning", "unavailableBinding");
       else appendLabel("history-warning", unifiedWarnings ? "versionUnavailableLabel" : "unavailableHistory", translate("historyUnavailableDescription", { version: versionState.version }));
     }
+    version.append(chip);
     if (!hasWarning && project.bound) version.append(icon("link"));
     if (!project.available) version.append(makeRemoveButton(project));
     row.append(fileIcon, description, version);

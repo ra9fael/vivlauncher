@@ -106,7 +106,7 @@ kbd { font-family: inherit; font-size: 11px; color: var(--muted); background: va
 #undo-clean { margin-right: 12px; }
 #confirm-description { white-space: pre-line; }
 .project-list { display: flex; flex-direction: column; gap: 4px; max-height: 320px; overflow-y: auto; padding: 2px; border-radius: 6px; scrollbar-width: thin; }
-.project-row { position: relative; display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 11px; min-height: 60px; padding: 10px 12px; border: 1px solid transparent; border-radius: 6px; cursor: pointer; }
+.project-row { position: relative; display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 11px; min-height: 60px; padding: 10px 12px; border: 1px solid transparent; border-radius: 6px; cursor: pointer; flex-shrink: 0; }
 .project-row:hover { background: var(--subtle); }
 .project-row[aria-selected="true"] { background: var(--selected); }
 .project-row[aria-selected="true"]::before { content: ""; position: absolute; width: 3px; height: 28px; background: var(--accent); border-radius: 3px; left: -1px; }
@@ -114,7 +114,8 @@ kbd { font-family: inherit; font-size: 11px; color: var(--muted); background: va
 .project-file-icon { display: grid; place-items: center; width: 34px; height: 38px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; color: var(--muted); }
 .project-row-title { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 13px; }
 .project-row-path { display: block; font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 3px; direction: rtl; text-align: left; }
-.project-row-version { color: var(--muted); font-size: 11px; text-align: right; align-self: start; padding-top: 1px; }
+.project-row-version { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; color: var(--muted); font-size: 11px; text-align: right; align-self: start; padding-top: 1px; }
+.version-chip { display: flex; flex-direction: column; align-items: flex-end; }
 .project-row-version .icon { width: 13px; height: 13px; margin-top: 4px; }
 .project-row-description { min-width: 0; }
 .version-number { display: flex; align-items: center; justify-content: end; gap: 4px; }
