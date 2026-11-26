@@ -4,7 +4,7 @@ The native C# / WPF launcher on `main` implements the approved revision 03 desig
 
 ## Screenshot
 
-![Vivado Launcher screenshot](https://github.com/user-attachments/assets/2ff842c6-229b-407b-a3b1-2058e0eec1c3)
+![Vivado Launcher screenshot](https://github.com/user-attachments/assets/66d1faa8-d809-4c77-8e7b-46125e3ad4e2)
 
 ## Run and build
 
